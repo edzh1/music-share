@@ -33,7 +33,7 @@ func (p *spotifyProvider) Auth() string {
 	requestBody := url.Values{}
 	requestBody.Set("grant_type", "client_credentials")
 
-	url := Spotify.endpoints["AUTH"]
+	url := p.endpoints["AUTH"]
 	request, err := http.NewRequest("POST", url, strings.NewReader(requestBody.Encode()))
 	request.Header.Set("authorization", fmt.Sprintf("Basic %s", p.ClientToken))
 	request.Header.Set("content-type", "application/x-www-form-urlencoded")
@@ -66,7 +66,7 @@ func (p *spotifyProvider) Auth() string {
 }
 
 func (p *spotifyProvider) GetTrack(trackID string) string {
-	url := fmt.Sprintf("%s/%s", Spotify.endpoints["GET_TRACK"], trackID)
+	url := fmt.Sprintf("%s/%s", p.endpoints["GET_TRACK"], trackID)
 	request, err := http.NewRequest("GET", url, nil)
 	request.Header.Set("authorization", p.apiToken)
 
@@ -92,7 +92,7 @@ func (p *spotifyProvider) GetTrack(trackID string) string {
 }
 
 func (p *spotifyProvider) GetAlbum(albumID string) string {
-	url := fmt.Sprintf("%s/%s", Spotify.endpoints["GET_ALBUM"], albumID)
+	url := fmt.Sprintf("%s/%s", p.endpoints["GET_ALBUM"], albumID)
 	request, err := http.NewRequest("GET", url, nil)
 	request.Header.Set("authorization", p.apiToken)
 
