@@ -20,7 +20,3 @@ type provider struct {
 	apiToken    string
 	endpoints   map[string]string
 }
-
-func (p *provider) GetTrack(string) string {
-	return "string"
-}
