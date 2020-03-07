@@ -4,6 +4,7 @@ type appleProvider struct {
 	provider
 }
 
+//Apple provider
 var Apple = &appleProvider{
 	provider: provider{
 		name: "apple",
