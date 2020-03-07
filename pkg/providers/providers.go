@@ -15,9 +15,10 @@ var client = http.Client{
 }
 
 type provider struct {
-	name      string
-	token     string
-	endpoints map[string]string
+	Name        string
+	ClientToken string
+	apiToken    string
+	endpoints   map[string]string
 }
 
 func (p *provider) GetTrack(string) string {
