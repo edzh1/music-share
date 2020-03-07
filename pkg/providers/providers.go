@@ -1,13 +1,25 @@
 package providers
 
+import (
+	"net/http"
+	"time"
+)
+
 type providerInterface interface {
 	getTrack(string) string
 }
 
-type provider struct {
-	name string
+var timeout = time.Duration(5 * time.Second)
+var client = http.Client{
+	Timeout: timeout,
 }
 
-func (p *provider) getTrack(string) string {
+type provider struct {
+	name      string
+	token     string
+	endpoints map[string]string
+}
+
+func (p *provider) GetTrack(string) string {
 	return "string"
 }
