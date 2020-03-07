@@ -68,7 +68,33 @@ func (p *spotifyProvider) Auth() string {
 func (p *spotifyProvider) GetTrack(trackID string) string {
 	url := fmt.Sprintf("%s/%s", Spotify.endpoints["GET_TRACK"], trackID)
 	request, err := http.NewRequest("GET", url, nil)
-	request.Header.Set("Authorization", p.apiToken)
+	request.Header.Set("authorization", p.apiToken)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	resp, err := client.Do(request)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return string(body)
+}
+
+func (p *spotifyProvider) GetAlbum(albumID string) string {
+	url := fmt.Sprintf("%s/%s", Spotify.endpoints["GET_ALBUM"], albumID)
+	request, err := http.NewRequest("GET", url, nil)
+	request.Header.Set("authorization", p.apiToken)
 
 	if err != nil {
 		log.Fatal(err)
