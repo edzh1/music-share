@@ -17,7 +17,7 @@ func main() {
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
 
-	var track = &mongoModels.TrackModel{Client: client, Ctx: &ctx}
+	var track = &mongoModels.TrackModel{Client: client}
 	// track.Insert("Technoid", "7CpFDGlrIfHLBmCBPvTSLU")
 	// track.Get("7CpFDGlrIfHLBmCBPvTSLU")
 	// track.Delete("7CpFDGlrIfHLBmCBPvTSLU")
