@@ -14,4 +14,13 @@ type Album struct {
 	SpotifyID string
 	YandexID  string
 	Name      string
+	Tracks    []*Track
+}
+
+//Artist type for a single artist
+type Artist struct {
+	ID        string
+	SpotifyID string
+	YandexID  string
+	Name      string
 }
