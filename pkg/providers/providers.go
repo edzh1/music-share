@@ -6,7 +6,9 @@ import (
 )
 
 type providerInterface interface {
-	getTrack(string) string
+	GetTrack(string) (string, error)
+	GetAlbum(string) (string, error)
+	GetArtist(string) (string, error)
 }
 
 var timeout = time.Duration(5 * time.Second)
@@ -14,7 +16,11 @@ var client = http.Client{
 	Timeout: timeout,
 }
 
-type provider struct {
-	Name      string
-	endpoints map[string]string
+//Provider struct
+type Provider struct {
+	Name              string
+	ClientToken       string
+	apiToken          string
+	endpoints         map[string]string
+	providerInterface //make this work
 }

@@ -10,28 +10,27 @@ import (
 	"strings"
 )
 
-type spotifyProvider struct {
-	provider
-	ClientToken string
-	apiToken    string
-}
+// type spotifyProvider struct {
+// 	Provider
+// 	ClientToken string
+// 	apiToken    string
+// }
 
 //Spotify provider
-var Spotify = &spotifyProvider{
+var Spotify = &Provider{
+	Name:        "spotify",
 	ClientToken: "",
-	provider: provider{
-		Name: "spotify",
-		endpoints: map[string]string{
-			"GET_TRACKS":  "https://api.spotify.com/v1/tracks",
-			"GET_ALBUMS":  "https://api.spotify.com/v1/albums",
-			"GET_ARTISTS": "https://api.spotify.com/v1/artists",
-			"SEARCH":      "https://api.spotify.com/v1/search",
-			"AUTH":        "https://accounts.spotify.com/api/token",
-		},
+	apiToken:    "Bearer BQCJ4g9TJs4L2Kb2gthvlC4WfHdrm8Z-Uy3OP0hc4nhnZyNLqExf5zWeJ-xbNOm8dIT6V9V-iRR0I-HQ724",
+	endpoints: map[string]string{
+		"GET_TRACKS":  "https://api.spotify.com/v1/tracks",
+		"GET_ALBUMS":  "https://api.spotify.com/v1/albums",
+		"GET_ARTISTS": "https://api.spotify.com/v1/artists",
+		"SEARCH":      "https://api.spotify.com/v1/search",
+		"AUTH":        "https://accounts.spotify.com/api/token",
 	},
 }
 
-func (p *spotifyProvider) Auth() string {
+func (p *Provider) Auth() string {
 	requestBody := url.Values{}
 	requestBody.Set("grant_type", "client_credentials")
 
@@ -67,7 +66,7 @@ func (p *spotifyProvider) Auth() string {
 	return result.AccessToken
 }
 
-func (p *spotifyProvider) GetTrack(trackID string) (string, error) {
+func (p *Provider) GetTrack(trackID string) (string, error) {
 	url := fmt.Sprintf("%s/%s", p.endpoints["GET_TRACKS"], trackID)
 	request, err := http.NewRequest("GET", url, nil)
 	request.Header.Set("authorization", p.apiToken)
@@ -96,7 +95,7 @@ func (p *spotifyProvider) GetTrack(trackID string) (string, error) {
 	return string(body), nil
 }
 
-func (p *spotifyProvider) GetAlbum(albumID string) (string, error) {
+func (p *Provider) GetAlbum(albumID string) (string, error) {
 	url := fmt.Sprintf("%s/%s", p.endpoints["GET_ALBUMS"], albumID)
 	request, err := http.NewRequest("GET", url, nil)
 	request.Header.Set("authorization", p.apiToken)
@@ -125,7 +124,7 @@ func (p *spotifyProvider) GetAlbum(albumID string) (string, error) {
 	return string(body), nil
 }
 
-func (p *spotifyProvider) GetArtist(artistID string) (string, error) {
+func (p *Provider) GetArtist(artistID string) (string, error) {
 	url := fmt.Sprintf("%s/%s", p.endpoints["GET_ARTISTS"], artistID)
 	request, err := http.NewRequest("GET", url, nil)
 	request.Header.Set("authorization", p.apiToken)

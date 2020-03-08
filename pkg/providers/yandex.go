@@ -8,12 +8,12 @@ import (
 )
 
 type yandexProvider struct {
-	provider
+	Provider
 }
 
 //Yandex provider
 var Yandex = &yandexProvider{
-	provider: provider{
+	Provider: Provider{
 		Name: "yandex",
 		endpoints: map[string]string{
 			"GET_TRACKS":  "https://music.yandex.ru/handlers/track.jsx",
