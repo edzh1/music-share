@@ -12,19 +12,21 @@ import (
 
 type spotifyProvider struct {
 	provider
+	ClientToken string
+	apiToken    string
 }
 
 //Spotify provider
 var Spotify = &spotifyProvider{
+	ClientToken: "",
 	provider: provider{
-		Name:        "spotify",
-		ClientToken: "",
-		apiToken:    "",
+		Name: "spotify",
 		endpoints: map[string]string{
-			"GET_TRACK": "https://api.spotify.com/v1/tracks",
-			"GET_ALBUM": "https://api.spotify.com/v1/albums",
-			"SEARCH":    "https://api.spotify.com/v1/search",
-			"AUTH":      "https://accounts.spotify.com/api/token",
+			"GET_TRACKS":  "https://api.spotify.com/v1/tracks",
+			"GET_ALBUMS":  "https://api.spotify.com/v1/albums",
+			"GET_ARTISTS": "https://api.spotify.com/v1/artists",
+			"SEARCH":      "https://api.spotify.com/v1/search",
+			"AUTH":        "https://accounts.spotify.com/api/token",
 		},
 	},
 }
@@ -65,19 +67,21 @@ func (p *spotifyProvider) Auth() string {
 	return result.AccessToken
 }
 
-func (p *spotifyProvider) GetTrack(trackID string) string {
-	url := fmt.Sprintf("%s/%s", p.endpoints["GET_TRACK"], trackID)
+func (p *spotifyProvider) GetTrack(trackID string) (string, error) {
+	url := fmt.Sprintf("%s/%s", p.endpoints["GET_TRACKS"], trackID)
 	request, err := http.NewRequest("GET", url, nil)
 	request.Header.Set("authorization", p.apiToken)
 
 	if err != nil {
 		log.Fatal(err)
+		return "", err
 	}
 
 	resp, err := client.Do(request)
 
 	if err != nil {
 		log.Fatal(err)
+		return "", err
 	}
 
 	defer resp.Body.Close()
@@ -86,24 +90,27 @@ func (p *spotifyProvider) GetTrack(trackID string) string {
 
 	if err != nil {
 		log.Fatal(err)
+		return "", err
 	}
 
-	return string(body)
+	return string(body), nil
 }
 
-func (p *spotifyProvider) GetAlbum(albumID string) string {
-	url := fmt.Sprintf("%s/%s", p.endpoints["GET_ALBUM"], albumID)
+func (p *spotifyProvider) GetAlbum(albumID string) (string, error) {
+	url := fmt.Sprintf("%s/%s", p.endpoints["GET_ALBUMS"], albumID)
 	request, err := http.NewRequest("GET", url, nil)
 	request.Header.Set("authorization", p.apiToken)
 
 	if err != nil {
 		log.Fatal(err)
+		return "", err
 	}
 
 	resp, err := client.Do(request)
 
 	if err != nil {
 		log.Fatal(err)
+		return "", err
 	}
 
 	defer resp.Body.Close()
@@ -112,7 +119,37 @@ func (p *spotifyProvider) GetAlbum(albumID string) string {
 
 	if err != nil {
 		log.Fatal(err)
+		return "", err
 	}
 
-	return string(body)
+	return string(body), nil
+}
+
+func (p *spotifyProvider) GetArtist(artistID string) (string, error) {
+	url := fmt.Sprintf("%s/%s", p.endpoints["GET_ARTISTS"], artistID)
+	request, err := http.NewRequest("GET", url, nil)
+	request.Header.Set("authorization", p.apiToken)
+
+	if err != nil {
+		log.Fatal(err)
+		return "", err
+	}
+
+	resp, err := client.Do(request)
+
+	if err != nil {
+		log.Fatal(err)
+		return "", err
+	}
+
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		log.Fatal(err)
+		return "", err
+	}
+
+	return string(body), nil
 }
