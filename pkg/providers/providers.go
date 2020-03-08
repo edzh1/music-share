@@ -15,8 +15,6 @@ var client = http.Client{
 }
 
 type provider struct {
-	Name        string
-	ClientToken string
-	apiToken    string
-	endpoints   map[string]string
+	Name      string
+	endpoints map[string]string
 }
