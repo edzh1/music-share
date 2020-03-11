@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	"github.com/edzh1/music-share/pkg/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -28,21 +29,18 @@ func (m *TrackModel) Insert(name, spotifyID string) (int, error) {
 }
 
 //Get single track from db
-func (m *TrackModel) Get(spotifyID string) (int, error) {
-	var result struct {
-		Name string
-	}
+func (m *TrackModel) Get(spotifyID string) (models.Track, error) {
+	var result models.Track
 
 	collection := m.Client.Database("music-share").Collection("tracks")
 	err := collection.FindOne(context.Background(), bson.M{"spotifyID": spotifyID}).Decode(&result)
 
 	if err != nil {
-		log.Fatal(err)
+		// log.Print(err)
+		return models.Track{}, err
 	}
 
-	log.Println(result)
-
-	return 1, nil
+	return result, nil
 }
 
 //Delete single track from db

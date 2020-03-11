@@ -8,29 +8,51 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	// "github.com/edzh1/music-share/pkg/models"
 )
 
-// type spotifyProvider struct {
-// 	Provider
-// 	ClientToken string
-// 	apiToken    string
-// }
-
-//Spotify provider
-var Spotify = &Provider{
-	Name:        "spotify",
-	ClientToken: "",
-	apiToken:    "Bearer BQCJ4g9TJs4L2Kb2gthvlC4WfHdrm8Z-Uy3OP0hc4nhnZyNLqExf5zWeJ-xbNOm8dIT6V9V-iRR0I-HQ724",
-	endpoints: map[string]string{
-		"GET_TRACKS":  "https://api.spotify.com/v1/tracks",
-		"GET_ALBUMS":  "https://api.spotify.com/v1/albums",
-		"GET_ARTISTS": "https://api.spotify.com/v1/artists",
-		"SEARCH":      "https://api.spotify.com/v1/search",
-		"AUTH":        "https://accounts.spotify.com/api/token",
-	},
+type spotifyProvider struct {
+	Provider
+	ClientToken string
+	apiToken    string
 }
 
-func (p *Provider) Auth() string {
+//Spotify provider
+var Spotify = &spotifyProvider{
+	Provider: Provider{
+		Name: "spotify",
+		endpoints: map[string]string{
+			"GET_TRACKS":  "https://api.spotify.com/v1/tracks",
+			"GET_ALBUMS":  "https://api.spotify.com/v1/albums",
+			"GET_ARTISTS": "https://api.spotify.com/v1/artists",
+			"SEARCH":      "https://api.spotify.com/v1/search",
+			"AUTH":        "https://accounts.spotify.com/api/token",
+		},
+	},
+	ClientToken: "",
+	apiToken:    "Bearer BQBwP7xRtjPj5ZluO4g7w1n17GxQO2X4gkTDEnDvfESOsRFB6H5MuieEGyTQbUUu1VvUiutNimmmZ5XYxL8",
+}
+
+type getSpotifyTrackResult struct {
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Artists []*struct {
+		ID   string
+		Name string
+	}
+}
+
+type getSpotifyAlbumResult struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type getSpotifyArtistResult struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+func (p *spotifyProvider) Auth() string {
 	requestBody := url.Values{}
 	requestBody.Set("grant_type", "client_credentials")
 
@@ -47,6 +69,11 @@ func (p *Provider) Auth() string {
 
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	if resp.StatusCode != 200 {
+		b, _ := ioutil.ReadAll(resp.Body)
+		log.Fatal(string(b))
 	}
 
 	defer resp.Body.Close()
@@ -66,89 +93,112 @@ func (p *Provider) Auth() string {
 	return result.AccessToken
 }
 
-func (p *Provider) GetTrack(trackID string) (string, error) {
+func (p *spotifyProvider) GetTrack(trackID string) (getTrackResult, error) {
 	url := fmt.Sprintf("%s/%s", p.endpoints["GET_TRACKS"], trackID)
 	request, err := http.NewRequest("GET", url, nil)
 	request.Header.Set("authorization", p.apiToken)
 
 	if err != nil {
 		log.Fatal(err)
-		return "", err
+		return getTrackResult{}, err
 	}
 
 	resp, err := client.Do(request)
 
 	if err != nil {
 		log.Fatal(err)
-		return "", err
+		return getTrackResult{}, err
+	}
+
+	if resp.StatusCode != 200 {
+		b, _ := ioutil.ReadAll(resp.Body)
+		log.Fatal(string(b))
 	}
 
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	var result getSpotifyTrackResult
+
+	err = json.NewDecoder(resp.Body).Decode(&result)
+
+	// log.Println(result)
 
 	if err != nil {
 		log.Fatal(err)
-		return "", err
+		return getTrackResult(result), err
 	}
 
-	return string(body), nil
+	return getTrackResult(result), nil
 }
 
-func (p *Provider) GetAlbum(albumID string) (string, error) {
+func (p *spotifyProvider) GetAlbum(albumID string) (getAlbumResult, error) {
 	url := fmt.Sprintf("%s/%s", p.endpoints["GET_ALBUMS"], albumID)
 	request, err := http.NewRequest("GET", url, nil)
 	request.Header.Set("authorization", p.apiToken)
 
 	if err != nil {
 		log.Fatal(err)
-		return "", err
+		return getAlbumResult{}, err
 	}
 
 	resp, err := client.Do(request)
 
 	if err != nil {
 		log.Fatal(err)
-		return "", err
+		return getAlbumResult{}, err
+	}
+
+	if resp.StatusCode != 200 {
+		b, _ := ioutil.ReadAll(resp.Body)
+		log.Fatal(string(b))
 	}
 
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	var result getSpotifyAlbumResult
+
+	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	if err != nil {
 		log.Fatal(err)
-		return "", err
+		return getAlbumResult{}, err
 	}
 
-	return string(body), nil
+	return getAlbumResult(result), nil
 }
 
-func (p *Provider) GetArtist(artistID string) (string, error) {
+func (p *spotifyProvider) GetArtist(artistID string) (getArtistResult, error) {
 	url := fmt.Sprintf("%s/%s", p.endpoints["GET_ARTISTS"], artistID)
 	request, err := http.NewRequest("GET", url, nil)
 	request.Header.Set("authorization", p.apiToken)
 
 	if err != nil {
 		log.Fatal(err)
-		return "", err
+		return getArtistResult{}, err
 	}
 
 	resp, err := client.Do(request)
 
 	if err != nil {
 		log.Fatal(err)
-		return "", err
+		return getArtistResult{}, err
+	}
+
+	if resp.StatusCode != 200 {
+		b, _ := ioutil.ReadAll(resp.Body)
+		log.Fatal(string(b))
 	}
 
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	var result getSpotifyArtistResult
+
+	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	if err != nil {
 		log.Fatal(err)
-		return "", err
+		return getArtistResult{}, err
 	}
 
-	return string(body), nil
+	return getArtistResult(result), nil
 }

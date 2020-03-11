@@ -20,6 +20,7 @@ func (m *AlbumModel) Insert(name, spotifyID string) (int, error) {
 
 	if err != nil {
 		log.Fatal(err)
+		return 0, err
 	}
 
 	log.Println(res)
@@ -28,7 +29,7 @@ func (m *AlbumModel) Insert(name, spotifyID string) (int, error) {
 }
 
 //Get single track from db
-func (m *AlbumModel) Get(spotifyID string) (int, error) {
+func (m *AlbumModel) Get(spotifyID string) (string, error) {
 	var result struct {
 		Name string
 	}
@@ -38,11 +39,12 @@ func (m *AlbumModel) Get(spotifyID string) (int, error) {
 
 	if err != nil {
 		log.Fatal(err)
+		return "", err
 	}
 
 	log.Println(result)
 
-	return 1, nil
+	return result.Name, nil
 }
 
 //Delete single track from db
@@ -52,6 +54,7 @@ func (m *AlbumModel) Delete(spotifyID string) (int, error) {
 
 	if err != nil {
 		log.Fatal(err)
+		return 0, err
 	}
 
 	log.Println(result)

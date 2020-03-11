@@ -2,6 +2,9 @@ package main
 
 import (
 	// mongoModels "github.com/edzh1/music-share/pkg/models/mongo"
+	"encoding/json"
+
+	"github.com/edzh1/music-share/pkg/models"
 	// "github.com/edzh1/music-share/pkg/urlparser"
 
 	"log"
@@ -10,8 +13,33 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func (app *application) getTrack(ID string, provider *providers.Provider) (string, error) {
-	result, err := app.track.Get(ID)
+func (app *application) getTrack(ID string, provider providers.ProviderInterface) (models.Track, error) {
+	// result, err := app.tracks.Get(ID)
+
+	// if err != nil && err != mongo.ErrNoDocuments {
+	// 	log.Fatal(err)
+	// 	return models.Track{}, err
+	// }
+
+	// if err == nil {
+	// 	return result, nil
+	// }
+
+	providerResult, err := provider.GetTrack(ID)
+	out, err := json.Marshal(providerResult)
+
+	log.Println(string(out))
+
+	if err != nil {
+		log.Fatal(err)
+		return models.Track{}, err
+	}
+
+	return models.Track{}, nil
+}
+
+func (app *application) getAlbum(ID string, provider providers.ProviderInterface) (string, error) {
+	result, err := app.albums.Get(ID)
 
 	if err != nil && err != mongo.ErrNoDocuments {
 		log.Fatal(err)
@@ -22,12 +50,12 @@ func (app *application) getTrack(ID string, provider *providers.Provider) (strin
 		return result, nil
 	}
 
-	result, err = provider.GetTrack(ID)
+	// result, err = provider.GetAlbum(ID)
 
-	if err != nil {
-		log.Fatal(err)
-		return "", err
-	}
+	// if err != nil {
+	// 	log.Fatal(err)
+	// 	return "", err
+	// }
 
 	return result, nil
 }
