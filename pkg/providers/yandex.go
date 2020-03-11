@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 type yandexProvider struct {
@@ -24,24 +25,24 @@ var Yandex = &yandexProvider{
 	},
 }
 
-type getYandexTrackResult struct {
-	ID     string `json:"id"`
-	Name   string `json:"name"`
-	Artist []*struct {
-		ID   string
-		Name string
-	} `json:"artists"`
-}
+// type getYandexTrackResult struct {
+// 	ID      string
+// 	Name    string
+// 	Artists []*struct {
+// 		ID   string
+// 		Name string
+// 	} `json:"artists"`
+// }
 
 type getYandexAlbumResult struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID   int
+	Name string `json:"title"`
 }
 
-type getYandexArtistResult struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-}
+// type getYandexArtistResult struct {
+// 	ID   string `json:"id"`
+// 	Name string `json:"name"`
+// }
 
 func (p *yandexProvider) GetTrack(trackID string) (getTrackResult, error) {
 	url := fmt.Sprintf("%s?track=%s&lang=en", p.endpoints["GET_TRACKS"], trackID)
@@ -66,7 +67,7 @@ func (p *yandexProvider) GetTrack(trackID string) (getTrackResult, error) {
 			ID    string
 			Title string
 		}
-		Artist []*struct {
+		Artists []*struct {
 			ID   string
 			Name string
 		} `json:"artists"`
@@ -82,7 +83,7 @@ func (p *yandexProvider) GetTrack(trackID string) (getTrackResult, error) {
 	return getTrackResult{
 		ID:      result.Track.ID,
 		Name:    result.Track.Title,
-		Artists: result.Artist,
+		Artists: result.Artists,
 	}, nil
 }
 
@@ -113,11 +114,14 @@ func (p *yandexProvider) GetAlbum(albumID string) (getAlbumResult, error) {
 		return getAlbumResult{}, err
 	}
 
-	return getAlbumResult(result), nil
+	return getAlbumResult{
+		ID:   strconv.Itoa(result.ID),
+		Name: result.Name,
+	}, nil
 }
 
 func (p *yandexProvider) GetArtist(artistID string) (getArtistResult, error) {
-	url := fmt.Sprintf("%s?artist=%s&lang=en", p.endpoints["GET_ALBUMS"], artistID)
+	url := fmt.Sprintf("%s?artist=%s&lang=en", p.endpoints["GET_ARTISTS"], artistID)
 	request, err := http.NewRequest("GET", url, nil)
 
 	if err != nil {
@@ -134,7 +138,12 @@ func (p *yandexProvider) GetArtist(artistID string) (getArtistResult, error) {
 
 	defer resp.Body.Close()
 
-	var result getYandexArtistResult
+	var result struct {
+		Artist struct {
+			ID   string
+			Name string
+		}
+	}
 
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
@@ -143,5 +152,8 @@ func (p *yandexProvider) GetArtist(artistID string) (getArtistResult, error) {
 		return getArtistResult{}, err
 	}
 
-	return getArtistResult(result), err
+	return getArtistResult{
+		ID:   result.Artist.ID,
+		Name: result.Artist.Name,
+	}, err
 }

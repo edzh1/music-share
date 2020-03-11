@@ -33,24 +33,24 @@ var Spotify = &spotifyProvider{
 	apiToken:    "Bearer BQBwP7xRtjPj5ZluO4g7w1n17GxQO2X4gkTDEnDvfESOsRFB6H5MuieEGyTQbUUu1VvUiutNimmmZ5XYxL8",
 }
 
-type getSpotifyTrackResult struct {
-	ID      string `json:"id"`
-	Name    string `json:"name"`
-	Artists []*struct {
-		ID   string
-		Name string
-	}
-}
+// type getSpotifyTrackResult struct {
+// 	ID      string
+// 	Name    string
+// 	Artists []*struct {
+// 		ID   string
+// 		Name string
+// 	}
+// }
 
-type getSpotifyAlbumResult struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-}
+// type getSpotifyAlbumResult struct {
+// 	ID   string
+// 	Name string
+// }
 
-type getSpotifyArtistResult struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-}
+// type getSpotifyArtistResult struct {
+// 	ID   string `json:"id"`
+// 	Name string `json:"name"`
+// }
 
 func (p *spotifyProvider) Auth() string {
 	requestBody := url.Values{}
@@ -117,7 +117,7 @@ func (p *spotifyProvider) GetTrack(trackID string) (getTrackResult, error) {
 
 	defer resp.Body.Close()
 
-	var result getSpotifyTrackResult
+	var result getTrackResult
 
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
@@ -128,7 +128,7 @@ func (p *spotifyProvider) GetTrack(trackID string) (getTrackResult, error) {
 		return getTrackResult(result), err
 	}
 
-	return getTrackResult(result), nil
+	return result, nil
 }
 
 func (p *spotifyProvider) GetAlbum(albumID string) (getAlbumResult, error) {
@@ -155,7 +155,7 @@ func (p *spotifyProvider) GetAlbum(albumID string) (getAlbumResult, error) {
 
 	defer resp.Body.Close()
 
-	var result getSpotifyAlbumResult
+	var result getAlbumResult
 
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
@@ -164,7 +164,7 @@ func (p *spotifyProvider) GetAlbum(albumID string) (getAlbumResult, error) {
 		return getAlbumResult{}, err
 	}
 
-	return getAlbumResult(result), nil
+	return result, nil
 }
 
 func (p *spotifyProvider) GetArtist(artistID string) (getArtistResult, error) {
@@ -191,7 +191,7 @@ func (p *spotifyProvider) GetArtist(artistID string) (getArtistResult, error) {
 
 	defer resp.Body.Close()
 
-	var result getSpotifyArtistResult
+	var result getArtistResult
 
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
