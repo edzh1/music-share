@@ -15,9 +15,9 @@ type TrackModel struct {
 }
 
 //Insert single track into db
-func (m *TrackModel) Insert(name, spotifyID string) (int, error) {
+func (m *TrackModel) Insert(document bson.M) (int, error) {
 	collection := m.Client.Database("music-share").Collection("tracks")
-	res, err := collection.InsertOne(context.Background(), bson.M{"name": name, "spotifyID": spotifyID})
+	res, err := collection.InsertOne(context.Background(), document)
 
 	if err != nil {
 		log.Fatal(err)
@@ -29,14 +29,13 @@ func (m *TrackModel) Insert(name, spotifyID string) (int, error) {
 }
 
 //Get single track from db
-func (m *TrackModel) Get(spotifyID string) (models.Track, error) {
+func (m *TrackModel) Get(filter bson.M) (models.Track, error) {
 	var result models.Track
 
 	collection := m.Client.Database("music-share").Collection("tracks")
-	err := collection.FindOne(context.Background(), bson.M{"spotifyID": spotifyID}).Decode(&result)
+	err := collection.FindOne(context.Background(), filter).Decode(&result)
 
 	if err != nil {
-		// log.Print(err)
 		return models.Track{}, err
 	}
 
