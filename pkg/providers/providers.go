@@ -6,12 +6,14 @@ import (
 )
 
 type ProviderInterface interface {
+	GetName() string
 	GetTrack(string) (getTrackResult, error)
 	GetAlbum(string) (getAlbumResult, error)
 	GetArtist(string) (getArtistResult, error)
+	Search(name, searchType string) (string, error)
 }
 
-var timeout = time.Duration(5 * time.Second)
+var timeout = time.Duration(15 * time.Second)
 var client = http.Client{
 	Timeout: timeout,
 }
@@ -42,9 +44,6 @@ type getArtistResult struct {
 
 //Provider struct
 type Provider struct {
-	Name              string
-	ClientToken       string
-	apiToken          string
-	endpoints         map[string]string
-	ProviderInterface //make this work
+	Name      string
+	endpoints map[string]string
 }
