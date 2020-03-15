@@ -3,8 +3,10 @@ package providers
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"strconv"
 )
 
@@ -25,24 +27,14 @@ var Yandex = &yandexProvider{
 	},
 }
 
-// type getYandexTrackResult struct {
-// 	ID      string
-// 	Name    string
-// 	Artists []*struct {
-// 		ID   string
-// 		Name string
-// 	} `json:"artists"`
-// }
-
 type getYandexAlbumResult struct {
 	ID   int
 	Name string `json:"title"`
 }
 
-// type getYandexArtistResult struct {
-// 	ID   string `json:"id"`
-// 	Name string `json:"name"`
-// }
+func (p *yandexProvider) GetName() string {
+	return p.Name
+}
 
 func (p *yandexProvider) GetTrack(trackID string) (getTrackResult, error) {
 	url := fmt.Sprintf("%s?track=%s&lang=en", p.endpoints["GET_TRACKS"], trackID)
@@ -156,4 +148,47 @@ func (p *yandexProvider) GetArtist(artistID string) (getArtistResult, error) {
 		ID:   result.Artist.ID,
 		Name: result.Artist.Name,
 	}, err
+}
+
+func (p *yandexProvider) Search(name, searchType string) (string, error) {
+	query := url.QueryEscape(name)
+	searchURL := fmt.Sprintf("%s?text=%s&type=%s&lang=en", p.endpoints["SEARCH"], query, searchType)
+
+	request, err := http.NewRequest("GET", searchURL, nil)
+
+	if err != nil {
+		log.Fatal(err)
+		return "", err
+	}
+
+	resp, err := client.Do(request)
+
+	if err != nil {
+		log.Fatal(err)
+		return "", err
+	}
+
+	if resp.StatusCode != 200 {
+		b, _ := ioutil.ReadAll(resp.Body)
+		log.Fatal(string(b))
+	}
+
+	defer resp.Body.Close()
+
+	var result struct {
+		Tracks struct {
+			Items []struct {
+				ID int
+			}
+		}
+	}
+
+	err = json.NewDecoder(resp.Body).Decode(&result)
+
+	if err != nil {
+		log.Fatal(err)
+		return "", err
+	}
+
+	return strconv.Itoa(result.Tracks.Items[0].ID), nil
 }

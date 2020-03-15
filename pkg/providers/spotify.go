@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	// "github.com/edzh1/music-share/pkg/models"
 )
 
 type spotifyProvider struct {
@@ -30,27 +29,12 @@ var Spotify = &spotifyProvider{
 		},
 	},
 	ClientToken: "",
-	apiToken:    "Bearer BQBwP7xRtjPj5ZluO4g7w1n17GxQO2X4gkTDEnDvfESOsRFB6H5MuieEGyTQbUUu1VvUiutNimmmZ5XYxL8",
+	apiToken:    "Bearer BQB3R6HzTlc66HdOhbA1VYlYH1xwI-9Tb0QF8ESPm49qdSGdD0mK3f7x9_NpozyKkBF91n9pygtmphCdEA4",
 }
 
-// type getSpotifyTrackResult struct {
-// 	ID      string
-// 	Name    string
-// 	Artists []*struct {
-// 		ID   string
-// 		Name string
-// 	}
-// }
-
-// type getSpotifyAlbumResult struct {
-// 	ID   string
-// 	Name string
-// }
-
-// type getSpotifyArtistResult struct {
-// 	ID   string `json:"id"`
-// 	Name string `json:"name"`
-// }
+func (p *spotifyProvider) GetName() string {
+	return p.Name
+}
 
 func (p *spotifyProvider) Auth() string {
 	requestBody := url.Values{}
@@ -121,11 +105,8 @@ func (p *spotifyProvider) GetTrack(trackID string) (getTrackResult, error) {
 
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
-	// log.Println(result)
-
 	if err != nil {
-		log.Fatal(err)
-		return getTrackResult(result), err
+		return getTrackResult{}, err
 	}
 
 	return result, nil
@@ -201,4 +182,48 @@ func (p *spotifyProvider) GetArtist(artistID string) (getArtistResult, error) {
 	}
 
 	return getArtistResult(result), nil
+}
+
+func (p *spotifyProvider) Search(name, searchType string) (string, error) {
+	query := url.QueryEscape(name)
+	searchURL := fmt.Sprintf("%s?q=%s&type=%s", p.endpoints["SEARCH"], query, searchType)
+
+	request, err := http.NewRequest("GET", searchURL, nil)
+	request.Header.Set("authorization", p.apiToken)
+
+	if err != nil {
+		log.Fatal(err)
+		return "", err
+	}
+
+	resp, err := client.Do(request)
+
+	if err != nil {
+		log.Fatal(err)
+		return "", err
+	}
+
+	if resp.StatusCode != 200 {
+		b, _ := ioutil.ReadAll(resp.Body)
+		log.Fatal(string(b))
+	}
+
+	defer resp.Body.Close()
+
+	var result struct {
+		Tracks struct {
+			Items []struct {
+				ID string
+			}
+		}
+	}
+
+	err = json.NewDecoder(resp.Body).Decode(&result)
+
+	if err != nil {
+		log.Fatal(err)
+		return "", err
+	}
+
+	return result.Tracks.Items[0].ID, nil
 }
