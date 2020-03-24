@@ -14,7 +14,7 @@ type AlbumModel struct {
 	Client *mongo.Client
 }
 
-//Insert single track into db
+//Insert single album into db
 func (m *AlbumModel) Insert(name, spotifyID string) (int, error) {
 	collection := m.Client.Database("music-share").Collection("music")
 	res, err := collection.InsertOne(context.Background(), bson.M{"name": name, "spotifyID": spotifyID})
@@ -29,7 +29,7 @@ func (m *AlbumModel) Insert(name, spotifyID string) (int, error) {
 	return 1, nil
 }
 
-//Get single track from db
+//Get single album from db
 func (m *AlbumModel) Get(filter bson.M) (models.Album, error) {
 	var result models.Album
 
@@ -46,7 +46,7 @@ func (m *AlbumModel) Get(filter bson.M) (models.Album, error) {
 	return result, nil
 }
 
-//Delete single track from db
+//Delete single album from db
 func (m *AlbumModel) Delete(spotifyID string) (int, error) {
 	collection := m.Client.Database("music-share").Collection("music")
 	result, err := collection.DeleteOne(context.Background(), bson.M{"spotifyID": spotifyID})
