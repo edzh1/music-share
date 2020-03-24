@@ -31,6 +31,11 @@ func (app *application) getTrack(ID string, provider providers.ProviderInterface
 	}
 
 	providerResult, err := provider.GetTrack(ID)
+
+	if err != nil {
+		return models.Track{}, err
+	}
+
 	out, err := json.Marshal(providerResult)
 
 	log.Println(string(out))
