@@ -29,7 +29,7 @@ var Spotify = &spotifyProvider{
 		},
 	},
 	ClientToken: "",
-	apiToken:    "Bearer BQB3R6HzTlc66HdOhbA1VYlYH1xwI-9Tb0QF8ESPm49qdSGdD0mK3f7x9_NpozyKkBF91n9pygtmphCdEA4",
+	apiToken:    "",
 }
 
 func (p *spotifyProvider) GetName() string {
@@ -57,6 +57,7 @@ func (p *spotifyProvider) Auth() string {
 
 	if resp.StatusCode != 200 {
 		b, _ := ioutil.ReadAll(resp.Body)
+		log.Println(resp.StatusCode)
 		log.Fatal(string(b))
 	}
 
@@ -64,6 +65,7 @@ func (p *spotifyProvider) Auth() string {
 
 	var result struct {
 		AccessToken string `json:"access_token"`
+		TokenType   string `json:"token_type"`
 	}
 
 	err = json.NewDecoder(resp.Body).Decode(&result)
@@ -72,7 +74,8 @@ func (p *spotifyProvider) Auth() string {
 		log.Fatal(err)
 	}
 
-	p.apiToken = result.AccessToken
+	p.apiToken = fmt.Sprintf("%s %s", result.TokenType, result.AccessToken)
+	log.Println(p.apiToken)
 
 	return result.AccessToken
 }
@@ -95,6 +98,12 @@ func (p *spotifyProvider) GetTrack(trackID string) (getTrackResult, error) {
 	}
 
 	if resp.StatusCode != 200 {
+		if resp.StatusCode == 400 {
+			p.Auth()
+			request.Header.Set("authorization", p.apiToken)
+			resp, err = client.Do(request)
+		}
+
 		b, _ := ioutil.ReadAll(resp.Body)
 		log.Fatal(string(b))
 	}
@@ -130,6 +139,12 @@ func (p *spotifyProvider) GetAlbum(albumID string) (getAlbumResult, error) {
 	}
 
 	if resp.StatusCode != 200 {
+		if resp.StatusCode == 400 {
+			p.Auth()
+			request.Header.Set("authorization", p.apiToken)
+			resp, err = client.Do(request)
+		}
+
 		b, _ := ioutil.ReadAll(resp.Body)
 		log.Fatal(string(b))
 	}
@@ -166,6 +181,12 @@ func (p *spotifyProvider) GetArtist(artistID string) (getArtistResult, error) {
 	}
 
 	if resp.StatusCode != 200 {
+		if resp.StatusCode == 400 {
+			p.Auth()
+			request.Header.Set("authorization", p.apiToken)
+			resp, err = client.Do(request)
+		}
+
 		b, _ := ioutil.ReadAll(resp.Body)
 		log.Fatal(string(b))
 	}

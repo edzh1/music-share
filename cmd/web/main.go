@@ -41,9 +41,10 @@ func main() {
 
 	// track.Delete("7CpFDGlrIfHLBmCBPvTSLU")
 
-	spotifyCredntials := flag.String("spotifyCredntials", "", "Base64 encoded client_id:clent_secret")
-	providers.Spotify.ClientToken = *spotifyCredntials
+	spotifyCredentials := flag.String("spotifyCredentials", "", "Base64 encoded client_id:clent_secret")
 	flag.Parse()
+
+	providers.Spotify.ClientToken = *spotifyCredentials
 
 	providerParser := &urlparser.URLParser{
 		Providers: []string{"yandex", "spotify"},
