@@ -2,6 +2,7 @@ package providers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -192,6 +193,16 @@ func (p *yandexProvider) Search(name, searchType string) (string, error) {
 				ID int
 			}
 		}
+		Albums struct {
+			Items []struct {
+				ID int
+			}
+		}
+		Artists struct {
+			Items []struct {
+				ID int
+			}
+		}
 	}
 
 	err = json.NewDecoder(resp.Body).Decode(&result)
@@ -201,5 +212,14 @@ func (p *yandexProvider) Search(name, searchType string) (string, error) {
 		return "", err
 	}
 
-	return strconv.Itoa(result.Tracks.Items[0].ID), nil
+	switch searchType {
+	case "tracks":
+		return strconv.Itoa(result.Tracks.Items[0].ID), nil
+	case "albums":
+		return strconv.Itoa(result.Albums.Items[0].ID), nil
+	case "artists":
+		return strconv.Itoa(result.Artists.Items[0].ID), nil
+	}
+
+	return "", errors.New("wrong search type")
 }

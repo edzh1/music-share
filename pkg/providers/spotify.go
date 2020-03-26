@@ -194,10 +194,10 @@ func (p *spotifyProvider) GetArtist(artistID string) (getArtistResult, error) {
 			p.Auth()
 			request.Header.Set("authorization", p.apiToken)
 			resp, err = client.Do(request)
+		} else {
+			b, _ := ioutil.ReadAll(resp.Body)
+			log.Fatal(string(b))
 		}
-
-		b, _ := ioutil.ReadAll(resp.Body)
-		log.Fatal(string(b))
 	}
 
 	defer resp.Body.Close()
