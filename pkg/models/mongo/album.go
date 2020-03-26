@@ -15,13 +15,13 @@ type AlbumModel struct {
 }
 
 var albumsCollection = "albums"
+
 //Insert single album into db
-func (m *AlbumModel) Insert(name, spotifyID string) (int, error) {
+func (m *AlbumModel) Insert(document bson.M) (int, error) {
 	collection := m.Client.Database("music-share").Collection(albumsCollection)
-	res, err := collection.InsertOne(context.Background(), bson.M{"name": name, "spotifyID": spotifyID})
+	res, err := collection.InsertOne(context.Background(), document)
 
 	if err != nil {
-		log.Fatal(err)
 		return 0, err
 	}
 
@@ -38,7 +38,6 @@ func (m *AlbumModel) Get(filter bson.M) (models.Album, error) {
 	err := collection.FindOne(context.Background(), filter).Decode(&result)
 
 	if err != nil {
-		log.Fatal(err)
 		return models.Album{}, err
 	}
 
