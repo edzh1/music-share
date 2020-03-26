@@ -14,13 +14,15 @@ type TrackModel struct {
 	Client *mongo.Client
 }
 
+var tracksCollection = "tracks"
+
 //Insert single track into db
 func (m *TrackModel) Insert(document bson.M) (int, error) {
-	collection := m.Client.Database("music-share").Collection("tracks")
+	collection := m.Client.Database("music-share").Collection(tracksCollection)
 	res, err := collection.InsertOne(context.Background(), document)
 
 	if err != nil {
-		log.Fatal(err)
+		return 0, err
 	}
 
 	log.Println(res)
@@ -32,7 +34,7 @@ func (m *TrackModel) Insert(document bson.M) (int, error) {
 func (m *TrackModel) Get(filter bson.M) (models.Track, error) {
 	var result models.Track
 
-	collection := m.Client.Database("music-share").Collection("tracks")
+	collection := m.Client.Database("music-share").Collection(tracksCollection)
 	err := collection.FindOne(context.Background(), filter).Decode(&result)
 
 	if err != nil {
@@ -44,7 +46,7 @@ func (m *TrackModel) Get(filter bson.M) (models.Track, error) {
 
 //Delete single track from db
 func (m *TrackModel) Delete(spotifyID string) (int, error) {
-	collection := m.Client.Database("music-share").Collection("tracks")
+	collection := m.Client.Database("music-share").Collection(tracksCollection)
 	result, err := collection.DeleteOne(context.Background(), bson.M{"spotifyID": spotifyID})
 
 	if err != nil {
