@@ -11,6 +11,7 @@ type ProviderInterface interface {
 	GetAlbum(string) (getAlbumResult, error)
 	GetArtist(string) (getArtistResult, error)
 	Search(name, searchType string) (string, error)
+	GetEntityID(url, entity string) (string, error)
 }
 
 var timeout = time.Duration(15 * time.Second)
