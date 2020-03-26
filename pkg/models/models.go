@@ -14,7 +14,6 @@ type Album struct {
 	SpotifyID string
 	YandexID  string
 	Name      string
-	Tracks    []*Track
 }
 
 //Artist type for a single artist
