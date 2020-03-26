@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"path"
 	"strconv"
 )
 
@@ -30,6 +31,16 @@ var Yandex = &yandexProvider{
 type getYandexAlbumResult struct {
 	ID   int
 	Name string `json:"title"`
+}
+
+func (p *yandexProvider) GetEntityID(URL, entity string) (string, error) {
+	u, err := url.Parse(URL)
+
+	if err != nil {
+		return "", err
+	}
+
+	return path.Base(u.Path), nil
 }
 
 func (p *yandexProvider) GetName() string {

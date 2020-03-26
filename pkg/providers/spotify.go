@@ -32,6 +32,15 @@ var Spotify = &spotifyProvider{
 	apiToken:    "",
 }
 
+func (p *spotifyProvider) GetEntityID(URL, entity string) (string, error) {
+	u, err := url.Parse(URL)
+	if err != nil {
+		return "", err
+	}
+
+	return u.Path, nil
+}
+
 func (p *spotifyProvider) GetName() string {
 	return p.Name
 }
