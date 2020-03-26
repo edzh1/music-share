@@ -34,8 +34,12 @@ type getTrackResult struct {
 }
 
 type getAlbumResult struct {
-	ID   string
-	Name string
+	ID      string
+	Name    string
+	Artists []*struct {
+		ID   string
+		Name string
+	}
 }
 
 type getArtistResult struct {
