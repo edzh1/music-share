@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/edzh1/music-share/pkg/models"
@@ -15,6 +16,57 @@ import (
 
 	"github.com/edzh1/music-share/pkg/providers"
 )
+
+func (app *application) handleLink(w http.ResponseWriter, r *http.Request) {
+	URL := r.URL.Query().Get("url")
+	providerName, err := app.providerParser.GetProvider(URL)
+
+	log.Println(URL)
+
+	if err != nil {
+		return
+	}
+
+	linkType, err := app.providerParser.GetLinkType(URL)
+
+	if err != nil {
+		return
+	}
+
+	provider := app.providers[providerName]
+
+	ID, err := provider.GetEntityID(URL, linkType)
+
+	if err != nil {
+		return
+	}
+
+	switch linkType {
+	case "track":
+		res, err := app.getTrack(ID, provider)
+
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+
+		log.Println(res.SpotifyID)
+
+		b, err := json.Marshal(res)
+
+		if err != nil {
+			return
+		}
+
+		w.Write(b)
+	case "album":
+		app.getAlbum(ID, provider)
+	case "artist":
+		app.getArtist(ID, provider)
+	}
+
+	return
+}
 
 func (app *application) getTrack(ID string, provider providers.ProviderInterface) (models.Track, error) {
 	filter := bson.M{fmt.Sprintf("%sID", provider.GetName()): ID}
@@ -30,14 +82,22 @@ func (app *application) getTrack(ID string, provider providers.ProviderInterface
 		return result, nil
 	}
 
+	log.Println("before EOF")
+
 	providerResult, err := provider.GetTrack(ID)
+
+	log.Println("before EOF2")
+	log.Println(err)
 
 	if err != nil {
 		return models.Track{}, err
 	}
 
+	log.Println("PIZDA!")
+
 	out, err := json.Marshal(providerResult)
 
+	log.Println("PIZDA")
 	log.Println(string(out))
 
 	if err != nil {
@@ -71,6 +131,15 @@ func (app *application) getTrack(ID string, provider providers.ProviderInterface
 		}
 
 		_, _ = app.tracks.Insert(newTrack)
+
+		var result models.Track
+
+		log.Println(newTrack)
+
+		bsonBytes, _ := bson.Marshal(newTrack)
+		bson.Unmarshal(bsonBytes, &result)
+
+		return result, nil
 	}
 
 	return models.Track{}, nil

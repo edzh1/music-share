@@ -213,11 +213,11 @@ func (p *yandexProvider) Search(name, searchType string) (string, error) {
 	}
 
 	switch searchType {
-	case "tracks":
+	case "track":
 		return strconv.Itoa(result.Tracks.Items[0].ID), nil
-	case "albums":
+	case "album":
 		return strconv.Itoa(result.Albums.Items[0].ID), nil
-	case "artists":
+	case "artist":
 		return strconv.Itoa(result.Artists.Items[0].ID), nil
 	}
 

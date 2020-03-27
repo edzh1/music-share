@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"path"
 	"strings"
 )
 
@@ -38,7 +39,7 @@ func (p *spotifyProvider) GetEntityID(URL, entity string) (string, error) {
 		return "", err
 	}
 
-	return u.Path, nil
+	return path.Base(u.Path), nil
 }
 
 func (p *spotifyProvider) GetName() string {
@@ -66,7 +67,6 @@ func (p *spotifyProvider) Auth() string {
 
 	if resp.StatusCode != 200 {
 		b, _ := ioutil.ReadAll(resp.Body)
-		log.Println(resp.StatusCode)
 		log.Fatal(string(b))
 	}
 
@@ -84,7 +84,6 @@ func (p *spotifyProvider) Auth() string {
 	}
 
 	p.apiToken = fmt.Sprintf("%s %s", result.TokenType, result.AccessToken)
-	log.Println(p.apiToken)
 
 	return result.AccessToken
 }
@@ -94,23 +93,27 @@ func (p *spotifyProvider) GetTrack(trackID string) (getTrackResult, error) {
 	request, err := http.NewRequest("GET", url, nil)
 	request.Header.Set("authorization", p.apiToken)
 
+	log.Println(trackID)
+
 	if err != nil {
-		log.Fatal(err)
 		return getTrackResult{}, err
 	}
 
 	resp, err := client.Do(request)
 
 	if err != nil {
-		log.Fatal(err)
 		return getTrackResult{}, err
 	}
 
 	if resp.StatusCode != 200 {
+		log.Println(resp.StatusCode)
 		if resp.StatusCode == 400 {
 			p.Auth()
 			request.Header.Set("authorization", p.apiToken)
 			resp, err = client.Do(request)
+			if err != nil {
+				log.Fatal(err)
+			}
 		} else {
 			b, _ := ioutil.ReadAll(resp.Body)
 			log.Fatal(string(b))
@@ -124,6 +127,8 @@ func (p *spotifyProvider) GetTrack(trackID string) (getTrackResult, error) {
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	if err != nil {
+		log.Println(resp.StatusCode)
+		log.Println("here")
 		return getTrackResult{}, err
 	}
 
@@ -221,27 +226,50 @@ func (p *spotifyProvider) Search(name, searchType string) (string, error) {
 	request, err := http.NewRequest("GET", searchURL, nil)
 	request.Header.Set("authorization", p.apiToken)
 
+	log.Println(1)
+
 	if err != nil {
-		log.Fatal(err)
 		return "", err
 	}
 
 	resp, err := client.Do(request)
 
+	log.Println(2)
+
 	if err != nil {
-		log.Fatal(err)
 		return "", err
 	}
 
+	log.Println(err)
+
 	if resp.StatusCode != 200 {
-		b, _ := ioutil.ReadAll(resp.Body)
-		log.Fatal(string(b))
+		if resp.StatusCode == 400 {
+			p.Auth()
+			log.Println(20)
+			request.Header.Set("authorization", p.apiToken)
+			resp, err = client.Do(request)
+		} else {
+			b, _ := ioutil.ReadAll(resp.Body)
+			log.Fatal(string(b))
+		}
 	}
+
+	log.Println(3)
 
 	defer resp.Body.Close()
 
 	var result struct {
 		Tracks struct {
+			Items []struct {
+				ID string
+			}
+		}
+		Albums struct {
+			Items []struct {
+				ID string
+			}
+		}
+		Artists struct {
 			Items []struct {
 				ID string
 			}

@@ -17,11 +17,13 @@ var regexpMap = map[string]map[string]*regexp.Regexp{
 		"domain": regexp.MustCompile("music\\.yandex\\.ru"),
 		"track":  regexp.MustCompile("/album/\\d+/track/\\d+"),
 		"album":  regexp.MustCompile("/album/\\d+($|\\?)"),
+		"artist": regexp.MustCompile("/artist/\\d+($|\\?)"),
 	},
 	"spotify": {
 		"domain": regexp.MustCompile("open\\.spotify\\.com"),
 		"track":  regexp.MustCompile("/track/\\w+"),
 		"album":  regexp.MustCompile("/album/\\w+"),
+		"artist": regexp.MustCompile("/artist/\\w+"),
 	},
 }
 
@@ -56,6 +58,12 @@ func (p *URLParser) GetLinkType(url string) (string, error) {
 
 	if pattern.MatchString(url) {
 		return "album", nil
+	}
+
+	pattern = regexpMap[provider]["artist"]
+
+	if pattern.MatchString(url) {
+		return "artist", nil
 	}
 
 	return "", errors.New("URLParser: unknown link type")
