@@ -2,10 +2,7 @@ package providers
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"path"
@@ -38,7 +35,7 @@ func (p *yandexProvider) GetEntityID(URL, entity string) (string, error) {
 	u, err := url.Parse(URL)
 
 	if err != nil {
-		return "", err
+		return "", ErrBadRequest
 	}
 
 	return path.Base(u.Path), nil
@@ -53,14 +50,18 @@ func (p *yandexProvider) GetTrack(trackID string) (getTrackResult, error) {
 	request, err := http.NewRequest("GET", url, nil)
 
 	if err != nil {
-		log.Fatal(err)
-		return getTrackResult{}, err
+		return getTrackResult{}, ErrProviderFailure
 	}
 
 	resp, err := client.Do(request)
 
 	if err != nil {
-		log.Fatal(err)
+		return getTrackResult{}, ErrProviderFailure
+	}
+
+	err = p.handleError(resp)
+
+	if err != nil {
 		return getTrackResult{}, err
 	}
 
@@ -80,8 +81,7 @@ func (p *yandexProvider) GetTrack(trackID string) (getTrackResult, error) {
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	if err != nil {
-		log.Fatal(err)
-		return getTrackResult{}, err
+		return getTrackResult{}, ErrProviderFailure
 	}
 
 	return getTrackResult{
@@ -96,14 +96,18 @@ func (p *yandexProvider) GetAlbum(albumID string) (getAlbumResult, error) {
 	request, err := http.NewRequest("GET", url, nil)
 
 	if err != nil {
-		log.Fatal(err)
-		return getAlbumResult{}, err
+		return getAlbumResult{}, ErrProviderFailure
 	}
 
 	resp, err := client.Do(request)
 
 	if err != nil {
-		log.Fatal(err)
+		return getAlbumResult{}, ErrProviderFailure
+	}
+
+	err = p.handleError(resp)
+
+	if err != nil {
 		return getAlbumResult{}, err
 	}
 
@@ -114,8 +118,7 @@ func (p *yandexProvider) GetAlbum(albumID string) (getAlbumResult, error) {
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	if err != nil {
-		log.Fatal(err)
-		return getAlbumResult{}, err
+		return getAlbumResult{}, ErrProviderFailure
 	}
 
 	return getAlbumResult{
@@ -129,14 +132,18 @@ func (p *yandexProvider) GetArtist(artistID string) (getArtistResult, error) {
 	request, err := http.NewRequest("GET", url, nil)
 
 	if err != nil {
-		log.Fatal(err)
-		return getArtistResult{}, err
+		return getArtistResult{}, ErrProviderFailure
 	}
 
 	resp, err := client.Do(request)
 
 	if err != nil {
-		log.Fatal(err)
+		return getArtistResult{}, ErrProviderFailure
+	}
+
+	err = p.handleError(resp)
+
+	if err != nil {
 		return getArtistResult{}, err
 	}
 
@@ -152,14 +159,13 @@ func (p *yandexProvider) GetArtist(artistID string) (getArtistResult, error) {
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	if err != nil {
-		log.Fatal(err)
-		return getArtistResult{}, err
+		return getArtistResult{}, ErrProviderFailure
 	}
 
 	return getArtistResult{
 		ID:   result.Artist.ID,
 		Name: result.Artist.Name,
-	}, err
+	}, nil
 }
 
 func (p *yandexProvider) Search(name, searchType string) (string, error) {
@@ -169,20 +175,19 @@ func (p *yandexProvider) Search(name, searchType string) (string, error) {
 	request, err := http.NewRequest("GET", searchURL, nil)
 
 	if err != nil {
-		log.Fatal(err)
-		return "", err
+		return "", ErrProviderFailure
 	}
 
 	resp, err := client.Do(request)
 
 	if err != nil {
-		log.Fatal(err)
-		return "", err
+		return "", ErrProviderFailure
 	}
 
-	if resp.StatusCode != 200 {
-		b, _ := ioutil.ReadAll(resp.Body)
-		log.Fatal(string(b))
+	err = p.handleError(resp)
+
+	if err != nil {
+		return "", err
 	}
 
 	defer resp.Body.Close()
@@ -208,8 +213,7 @@ func (p *yandexProvider) Search(name, searchType string) (string, error) {
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	if err != nil {
-		log.Fatal(err)
-		return "", err
+		return "", ErrProviderFailure
 	}
 
 	switch searchType {
@@ -221,5 +225,19 @@ func (p *yandexProvider) Search(name, searchType string) (string, error) {
 		return strconv.Itoa(result.Artists.Items[0].ID), nil
 	}
 
-	return "", errors.New("wrong search type")
+	return "", ErrWrongSearchType
+}
+
+func (p *yandexProvider) handleError(resp *http.Response) error {
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 400 {
+			return ErrBadRequest
+		} else if resp.StatusCode == 404 {
+			return ErrNotFound
+		} else {
+			return ErrProviderFailure
+		}
+	}
+
+	return nil
 }

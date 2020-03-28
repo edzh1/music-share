@@ -3,33 +3,29 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 
 	"github.com/edzh1/music-share/pkg/models"
+	"github.com/edzh1/music-share/pkg/providers"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-
-	// "github.com/edzh1/music-share/pkg/urlparser"
-
-	"log"
-
-	"github.com/edzh1/music-share/pkg/providers"
 )
 
 func (app *application) handleLink(w http.ResponseWriter, r *http.Request) {
 	URL := r.URL.Query().Get("url")
 	providerName, err := app.providerParser.GetProvider(URL)
 
-	log.Println(URL)
-
 	if err != nil {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
 	linkType, err := app.providerParser.GetLinkType(URL)
 
 	if err != nil {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
@@ -38,32 +34,40 @@ func (app *application) handleLink(w http.ResponseWriter, r *http.Request) {
 	ID, err := provider.GetEntityID(URL, linkType)
 
 	if err != nil {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
 
+	var res interface{}
+
 	switch linkType {
 	case "track":
-		res, err := app.getTrack(ID, provider)
-
-		if err != nil {
-			log.Fatal(err)
-			return
-		}
-
-		log.Println(res.SpotifyID)
-
-		b, err := json.Marshal(res)
-
-		if err != nil {
-			return
-		}
-
-		w.Write(b)
+		res, err = app.getTrack(ID, provider)
 	case "album":
-		app.getAlbum(ID, provider)
+		res, err = app.getAlbum(ID, provider)
 	case "artist":
-		app.getArtist(ID, provider)
+		res, err = app.getArtist(ID, provider)
 	}
+
+	if err != nil {
+		if err == providers.ErrBadRequest {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		} else if err == providers.ErrProviderFailure {
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		log.Fatal(err)
+	}
+
+	b, err := json.Marshal(res)
+
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	}
+
+	w.Write(b)
 
 	return
 }
@@ -74,7 +78,6 @@ func (app *application) getTrack(ID string, provider providers.ProviderInterface
 	result, err := app.tracks.Get(filter)
 
 	if err != nil && err != mongo.ErrNoDocuments {
-		log.Fatal(err)
 		return models.Track{}, err
 	}
 
@@ -82,23 +85,7 @@ func (app *application) getTrack(ID string, provider providers.ProviderInterface
 		return result, nil
 	}
 
-	log.Println("before EOF")
-
 	providerResult, err := provider.GetTrack(ID)
-
-	log.Println("before EOF2")
-	log.Println(err)
-
-	if err != nil {
-		return models.Track{}, err
-	}
-
-	log.Println("PIZDA!")
-
-	out, err := json.Marshal(providerResult)
-
-	log.Println("PIZDA")
-	log.Println(string(out))
 
 	if err != nil {
 		return models.Track{}, err
@@ -120,10 +107,10 @@ func (app *application) getTrack(ID string, provider providers.ProviderInterface
 
 		for providerKey, providerValue := range app.providers {
 			if providerKey != provider.GetName() {
-				providerID, err := providerValue.Search(fmt.Sprintf("%s - %s", providerResult.Name, artists), "track")
+				providerID, err := providerValue.Search(fmt.Sprintf("%s %s", providerResult.Name, artists), "track")
 
 				if err != nil {
-					log.Fatal(err)
+					providerID = ""
 				}
 
 				newTrack[fmt.Sprintf("%sID", providerKey)] = providerID
@@ -133,8 +120,6 @@ func (app *application) getTrack(ID string, provider providers.ProviderInterface
 		_, _ = app.tracks.Insert(newTrack)
 
 		var result models.Track
-
-		log.Println(newTrack)
 
 		bsonBytes, _ := bson.Marshal(newTrack)
 		bson.Unmarshal(bsonBytes, &result)
@@ -151,7 +136,6 @@ func (app *application) getAlbum(ID string, provider providers.ProviderInterface
 	result, err := app.albums.Get(filter)
 
 	if err != nil && err != mongo.ErrNoDocuments {
-		log.Fatal(err)
 		return models.Album{}, err
 	}
 
@@ -160,14 +144,6 @@ func (app *application) getAlbum(ID string, provider providers.ProviderInterface
 	}
 
 	providerResult, err := provider.GetAlbum(ID)
-
-	if err != nil {
-		return models.Album{}, err
-	}
-
-	out, err := json.Marshal(providerResult)
-
-	log.Println(string(out))
 
 	if err != nil {
 		return models.Album{}, err
@@ -189,10 +165,10 @@ func (app *application) getAlbum(ID string, provider providers.ProviderInterface
 
 		for providerKey, providerValue := range app.providers {
 			if providerKey != provider.GetName() {
-				providerID, err := providerValue.Search(fmt.Sprintf("%s - %s", providerResult.Name, artists), "track")
+				providerID, err := providerValue.Search(fmt.Sprintf("%s - %s", providerResult.Name, artists), "album")
 
 				if err != nil {
-					log.Fatal(err)
+					providerID = ""
 				}
 
 				newAlbum[fmt.Sprintf("%sID", providerKey)] = providerID
@@ -200,6 +176,13 @@ func (app *application) getAlbum(ID string, provider providers.ProviderInterface
 		}
 
 		_, _ = app.albums.Insert(newAlbum)
+
+		var result models.Album
+
+		bsonBytes, _ := bson.Marshal(newAlbum)
+		bson.Unmarshal(bsonBytes, &result)
+
+		return result, nil
 	}
 
 	return models.Album{}, nil
@@ -211,7 +194,6 @@ func (app *application) getArtist(ID string, provider providers.ProviderInterfac
 	result, err := app.artists.Get(filter)
 
 	if err != nil && err != mongo.ErrNoDocuments {
-		log.Fatal(err)
 		return models.Artist{}, err
 	}
 
@@ -225,14 +207,6 @@ func (app *application) getArtist(ID string, provider providers.ProviderInterfac
 		return models.Artist{}, err
 	}
 
-	out, err := json.Marshal(providerResult)
-
-	log.Println(string(out))
-
-	if err != nil {
-		return models.Artist{}, err
-	}
-
 	if result == (models.Artist{}) {
 		newArtist := bson.M{
 			"name":                                  providerResult.Name,
@@ -241,10 +215,10 @@ func (app *application) getArtist(ID string, provider providers.ProviderInterfac
 
 		for providerKey, providerValue := range app.providers {
 			if providerKey != provider.GetName() {
-				providerID, err := providerValue.Search(providerResult.Name, "artists")
+				providerID, err := providerValue.Search(providerResult.Name, "artist")
 
 				if err != nil {
-					log.Fatal(err)
+					providerID = ""
 				}
 
 				newArtist[fmt.Sprintf("%sID", providerKey)] = providerID
@@ -252,6 +226,13 @@ func (app *application) getArtist(ID string, provider providers.ProviderInterfac
 		}
 
 		_, _ = app.artists.Insert(newArtist)
+
+		var result models.Artist
+
+		bsonBytes, _ := bson.Marshal(newArtist)
+		bson.Unmarshal(bsonBytes, &result)
+
+		return result, nil
 	}
 
 	return models.Artist{}, nil

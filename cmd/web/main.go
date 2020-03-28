@@ -27,6 +27,11 @@ type application struct {
 func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	defer cancel()
 
 	spotifyCredentials := flag.String("spotifyCredentials", "", "Base64 encoded client_id:clent_secret")
@@ -46,13 +51,6 @@ func main() {
 			"spotify": providers.Spotify,
 			"yandex":  providers.Yandex,
 		},
-	}
-
-	// provider, err := providerParser.GetProvider("https://open.spotify.com/track/4DZBk2qmeAvZtSmhSayaXh")
-	// provider, err := providerParser.GetProvider("https://music.yandex.ru/album/10073206/track/63360735")
-
-	if err != nil {
-		log.Fatal(err)
 	}
 
 	// tlsConfig := &tls.Config{
@@ -75,14 +73,4 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	// _, _ = app.getTrack("28358063", app.providers[provider])
-	// _, _ = app.getAlbum("9899790", app.providers[provider])
-	// _, _ = app.getArtist("1768379", app.providers[provider])
-	// _, _ = app.getTrack("4DZBk2qmeAvZtSmhSayaXh", app.providers[provider])
-	// _, _ = providers.Yandex.GetEntityID("https://music.yandex.ru/album/10073206/track/63360735", "track")
-	// _, _ = app.getAlbum("7CpFDGlrIfHLBmCBPvTSLU?si=GHCzKcKgTeKlRgzXDRdw8w", app.providers[provider])
-	// _, _ = app.getArtist("24eQxPRLv3UMwEIo6mawVW", app.providers[provider])
-
-	// linkType, err := providerParser.GetLinkType("https://open.spotify.com/track/7rqWfVnNo2hyCpSpCpEYFj?si=GHCzKcKgTeKlRgzXDRdw8w")
-	// linkType, err := providerParser.GetLinkType("https://music.yandex.ru/album/10073206/track/63360735")
 }

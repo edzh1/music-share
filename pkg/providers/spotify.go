@@ -3,8 +3,6 @@ package providers
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"path"
@@ -16,6 +14,9 @@ type spotifyProvider struct {
 	ClientToken string
 	apiToken    string
 }
+
+var ErrInvalidTokenMessage = "Only valid bearer authentication supported"
+var ErrExpiredTokenMessage = "The access token expired"
 
 //Spotify provider
 var Spotify = &spotifyProvider{
@@ -35,8 +36,9 @@ var Spotify = &spotifyProvider{
 
 func (p *spotifyProvider) GetEntityID(URL, entity string) (string, error) {
 	u, err := url.Parse(URL)
+
 	if err != nil {
-		return "", err
+		return "", ErrBadRequest
 	}
 
 	return path.Base(u.Path), nil
@@ -46,7 +48,7 @@ func (p *spotifyProvider) GetName() string {
 	return p.Name
 }
 
-func (p *spotifyProvider) Auth() string {
+func (p *spotifyProvider) Auth() error {
 	requestBody := url.Values{}
 	requestBody.Set("grant_type", "client_credentials")
 
@@ -56,18 +58,17 @@ func (p *spotifyProvider) Auth() string {
 	request.Header.Set("content-type", "application/x-www-form-urlencoded")
 
 	if err != nil {
-		log.Fatal(err)
+		return ErrProviderFailure
 	}
 
 	resp, err := client.Do(request)
 
 	if err != nil {
-		log.Fatal(err)
+		return ErrProviderFailure
 	}
 
 	if resp.StatusCode != 200 {
-		b, _ := ioutil.ReadAll(resp.Body)
-		log.Fatal(string(b))
+		return ErrProviderFailure
 	}
 
 	defer resp.Body.Close()
@@ -80,12 +81,12 @@ func (p *spotifyProvider) Auth() string {
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	if err != nil {
-		log.Fatal(err)
+		return ErrProviderFailure
 	}
 
 	p.apiToken = fmt.Sprintf("%s %s", result.TokenType, result.AccessToken)
 
-	return result.AccessToken
+	return nil
 }
 
 func (p *spotifyProvider) GetTrack(trackID string) (getTrackResult, error) {
@@ -93,31 +94,30 @@ func (p *spotifyProvider) GetTrack(trackID string) (getTrackResult, error) {
 	request, err := http.NewRequest("GET", url, nil)
 	request.Header.Set("authorization", p.apiToken)
 
-	log.Println(trackID)
-
 	if err != nil {
-		return getTrackResult{}, err
+		return getTrackResult{}, ErrProviderFailure
 	}
 
 	resp, err := client.Do(request)
 
 	if err != nil {
-		return getTrackResult{}, err
+		return getTrackResult{}, ErrProviderFailure
 	}
 
-	if resp.StatusCode != 200 {
-		log.Println(resp.StatusCode)
-		if resp.StatusCode == 400 {
-			p.Auth()
-			request.Header.Set("authorization", p.apiToken)
-			resp, err = client.Do(request)
-			if err != nil {
-				log.Fatal(err)
-			}
-		} else {
-			b, _ := ioutil.ReadAll(resp.Body)
-			log.Fatal(string(b))
+	err = p.handleError(resp)
+
+	if err == ErrAuth {
+		err = p.Auth()
+		request.Header.Set("authorization", p.apiToken)
+		resp, err = client.Do(request)
+
+		err = p.handleError(resp)
+
+		if err != nil {
+			return getTrackResult{}, err
 		}
+	} else {
+		return getTrackResult{}, err
 	}
 
 	defer resp.Body.Close()
@@ -127,9 +127,7 @@ func (p *spotifyProvider) GetTrack(trackID string) (getTrackResult, error) {
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	if err != nil {
-		log.Println(resp.StatusCode)
-		log.Println("here")
-		return getTrackResult{}, err
+		return getTrackResult{}, ErrProviderFailure
 	}
 
 	return result, nil
@@ -141,26 +139,29 @@ func (p *spotifyProvider) GetAlbum(albumID string) (getAlbumResult, error) {
 	request.Header.Set("authorization", p.apiToken)
 
 	if err != nil {
-		log.Fatal(err)
-		return getAlbumResult{}, err
+		return getAlbumResult{}, ErrProviderFailure
 	}
 
 	resp, err := client.Do(request)
 
 	if err != nil {
-		log.Fatal(err)
-		return getAlbumResult{}, err
+		return getAlbumResult{}, ErrProviderFailure
 	}
 
-	if resp.StatusCode != 200 {
-		if resp.StatusCode == 400 {
-			p.Auth()
-			request.Header.Set("authorization", p.apiToken)
-			resp, err = client.Do(request)
-		} else {
-			b, _ := ioutil.ReadAll(resp.Body)
-			log.Fatal(string(b))
+	err = p.handleError(resp)
+
+	if err == ErrAuth {
+		err = p.Auth()
+		request.Header.Set("authorization", p.apiToken)
+		resp, err = client.Do(request)
+
+		err = p.handleError(resp)
+
+		if err != nil {
+			return getAlbumResult{}, err
 		}
+	} else {
+		return getAlbumResult{}, err
 	}
 
 	defer resp.Body.Close()
@@ -170,8 +171,7 @@ func (p *spotifyProvider) GetAlbum(albumID string) (getAlbumResult, error) {
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	if err != nil {
-		log.Fatal(err)
-		return getAlbumResult{}, err
+		return getAlbumResult{}, ErrProviderFailure
 	}
 
 	return result, nil
@@ -183,26 +183,29 @@ func (p *spotifyProvider) GetArtist(artistID string) (getArtistResult, error) {
 	request.Header.Set("authorization", p.apiToken)
 
 	if err != nil {
-		log.Fatal(err)
-		return getArtistResult{}, err
+		return getArtistResult{}, ErrProviderFailure
 	}
 
 	resp, err := client.Do(request)
 
 	if err != nil {
-		log.Fatal(err)
-		return getArtistResult{}, err
+		return getArtistResult{}, ErrProviderFailure
 	}
 
-	if resp.StatusCode != 200 {
-		if resp.StatusCode == 400 {
-			p.Auth()
-			request.Header.Set("authorization", p.apiToken)
-			resp, err = client.Do(request)
-		} else {
-			b, _ := ioutil.ReadAll(resp.Body)
-			log.Fatal(string(b))
+	err = p.handleError(resp)
+
+	if err == ErrAuth {
+		err = p.Auth()
+		request.Header.Set("authorization", p.apiToken)
+		resp, err = client.Do(request)
+
+		err = p.handleError(resp)
+
+		if err != nil {
+			return getArtistResult{}, err
 		}
+	} else {
+		return getArtistResult{}, err
 	}
 
 	defer resp.Body.Close()
@@ -212,8 +215,7 @@ func (p *spotifyProvider) GetArtist(artistID string) (getArtistResult, error) {
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	if err != nil {
-		log.Fatal(err)
-		return getArtistResult{}, err
+		return getArtistResult{}, ErrProviderFailure
 	}
 
 	return getArtistResult(result), nil
@@ -226,35 +228,31 @@ func (p *spotifyProvider) Search(name, searchType string) (string, error) {
 	request, err := http.NewRequest("GET", searchURL, nil)
 	request.Header.Set("authorization", p.apiToken)
 
-	log.Println(1)
-
 	if err != nil {
-		return "", err
+		return "", ErrProviderFailure
 	}
 
 	resp, err := client.Do(request)
 
-	log.Println(2)
-
 	if err != nil {
+		return "", ErrProviderFailure
+	}
+
+	err = p.handleError(resp)
+
+	if err == ErrAuth {
+		err = p.Auth()
+		request.Header.Set("authorization", p.apiToken)
+		resp, err = client.Do(request)
+
+		err = p.handleError(resp)
+
+		if err != nil {
+			return "", err
+		}
+	} else {
 		return "", err
 	}
-
-	log.Println(err)
-
-	if resp.StatusCode != 200 {
-		if resp.StatusCode == 400 {
-			p.Auth()
-			log.Println(20)
-			request.Header.Set("authorization", p.apiToken)
-			resp, err = client.Do(request)
-		} else {
-			b, _ := ioutil.ReadAll(resp.Body)
-			log.Fatal(string(b))
-		}
-	}
-
-	log.Println(3)
 
 	defer resp.Body.Close()
 
@@ -279,9 +277,49 @@ func (p *spotifyProvider) Search(name, searchType string) (string, error) {
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	if err != nil {
-		log.Fatal(err)
-		return "", err
+		return "", ErrProviderFailure
 	}
 
-	return result.Tracks.Items[0].ID, nil
+	switch searchType {
+	case "track":
+		return (result.Tracks.Items[0].ID), nil
+	case "album":
+		return (result.Albums.Items[0].ID), nil
+	case "artist":
+		return (result.Artists.Items[0].ID), nil
+	}
+
+	return "", ErrWrongSearchType
+}
+
+func (p *spotifyProvider) handleError(resp *http.Response) error {
+	var responseError struct {
+		Error struct {
+			Status  int
+			Message string
+		}
+	}
+
+	if resp.StatusCode != 200 {
+		if resp.StatusCode == 400 || resp.StatusCode == 401 {
+			err := json.NewDecoder(resp.Body).Decode(&responseError)
+
+			if err != nil {
+				return ErrProviderFailure
+			}
+
+			if responseError.Error.Message == ErrInvalidTokenMessage ||
+				responseError.Error.Message == ErrExpiredTokenMessage {
+				return ErrAuth
+			}
+
+			return ErrBadRequest
+		} else if resp.StatusCode == 404 {
+			return ErrNotFound
+		} else {
+			return ErrProviderFailure
+		}
+	}
+
+	return nil
 }
