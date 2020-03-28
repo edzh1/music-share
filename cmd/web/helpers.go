@@ -1,10 +1,7 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"log"
-	"net/http"
 	"strings"
 
 	"github.com/edzh1/music-share/pkg/models"
@@ -12,65 +9,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
-
-func (app *application) handleLink(w http.ResponseWriter, r *http.Request) {
-	URL := r.URL.Query().Get("url")
-	providerName, err := app.providerParser.GetProvider(URL)
-
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
-	}
-
-	linkType, err := app.providerParser.GetLinkType(URL)
-
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
-	}
-
-	provider := app.providers[providerName]
-
-	ID, err := provider.GetEntityID(URL, linkType)
-
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
-	}
-
-	var res interface{}
-
-	switch linkType {
-	case "track":
-		res, err = app.getTrack(ID, provider)
-	case "album":
-		res, err = app.getAlbum(ID, provider)
-	case "artist":
-		res, err = app.getArtist(ID, provider)
-	}
-
-	if err != nil {
-		if err == providers.ErrBadRequest {
-			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-			return
-		} else if err == providers.ErrProviderFailure {
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			return
-		}
-
-		log.Fatal(err)
-	}
-
-	b, err := json.Marshal(res)
-
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-	}
-
-	w.Write(b)
-
-	return
-}
 
 func (app *application) getTrack(ID string, provider providers.ProviderInterface) (models.Track, error) {
 	filter := bson.M{fmt.Sprintf("%sID", provider.GetName()): ID}
@@ -91,6 +29,8 @@ func (app *application) getTrack(ID string, provider providers.ProviderInterface
 		return models.Track{}, err
 	}
 
+	var providerIDs map[string]string
+
 	if result == (models.Track{}) {
 		var artistSlice []string
 
@@ -105,15 +45,23 @@ func (app *application) getTrack(ID string, provider providers.ProviderInterface
 			fmt.Sprintf("%sID", provider.GetName()): ID,
 		}
 
+		if provider.GetName() == "yandex" {
+			newTrack["YandexAlbumID"] = providerResult.Album.ID
+		}
+
 		for providerKey, providerValue := range app.providers {
 			if providerKey != provider.GetName() {
-				providerID, err := providerValue.Search(fmt.Sprintf("%s %s", providerResult.Name, artists), "track")
+				providerIDs, err = providerValue.Search(fmt.Sprintf("%s %s", providerResult.Name, artists), "track")
 
 				if err != nil {
-					providerID = ""
+					providerIDs = nil
 				}
 
-				newTrack[fmt.Sprintf("%sID", providerKey)] = providerID
+				newTrack[fmt.Sprintf("%sID", providerKey)] = providerIDs["track"]
+
+				if providerKey == "yandex" {
+					newTrack["YandexAlbumID"] = providerIDs["album"]
+				}
 			}
 		}
 
@@ -165,13 +113,13 @@ func (app *application) getAlbum(ID string, provider providers.ProviderInterface
 
 		for providerKey, providerValue := range app.providers {
 			if providerKey != provider.GetName() {
-				providerID, err := providerValue.Search(fmt.Sprintf("%s - %s", providerResult.Name, artists), "album")
+				providerIDs, err := providerValue.Search(fmt.Sprintf("%s - %s", providerResult.Name, artists), "album")
 
 				if err != nil {
-					providerID = ""
+					providerIDs = nil
 				}
 
-				newAlbum[fmt.Sprintf("%sID", providerKey)] = providerID
+				newAlbum[fmt.Sprintf("%sID", providerKey)] = providerIDs["album"]
 			}
 		}
 
@@ -215,13 +163,13 @@ func (app *application) getArtist(ID string, provider providers.ProviderInterfac
 
 		for providerKey, providerValue := range app.providers {
 			if providerKey != provider.GetName() {
-				providerID, err := providerValue.Search(providerResult.Name, "artist")
+				providerIDs, err := providerValue.Search(providerResult.Name, "artist")
 
 				if err != nil {
-					providerID = ""
+					providerIDs = nil
 				}
 
-				newArtist[fmt.Sprintf("%sID", providerKey)] = providerID
+				newArtist[fmt.Sprintf("%sID", providerKey)] = providerIDs["artist"]
 			}
 		}
 

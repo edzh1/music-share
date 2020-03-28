@@ -69,13 +69,16 @@ func (p *yandexProvider) GetTrack(trackID string) (getTrackResult, error) {
 
 	var result struct {
 		Track struct {
-			ID    string
-			Title string
+			ID     string
+			Title  string
+			Albums []*struct {
+				ID int
+			}
+			Artists []*struct {
+				ID   string
+				Name string
+			}
 		}
-		Artists []*struct {
-			ID   string
-			Name string
-		} `json:"artists"`
 	}
 
 	err = json.NewDecoder(resp.Body).Decode(&result)
@@ -87,7 +90,10 @@ func (p *yandexProvider) GetTrack(trackID string) (getTrackResult, error) {
 	return getTrackResult{
 		ID:      result.Track.ID,
 		Name:    result.Track.Title,
-		Artists: result.Artists,
+		Artists: result.Track.Artists,
+		Album: struct{ ID string }{
+			ID: string(result.Track.Albums[0].ID),
+		},
 	}, nil
 }
 
@@ -168,26 +174,26 @@ func (p *yandexProvider) GetArtist(artistID string) (getArtistResult, error) {
 	}, nil
 }
 
-func (p *yandexProvider) Search(name, searchType string) (string, error) {
+func (p *yandexProvider) Search(name, searchType string) (map[string]string, error) {
 	query := url.QueryEscape(name)
 	searchURL := fmt.Sprintf("%s?text=%s&type=%s&lang=en", p.endpoints["SEARCH"], query, searchType)
 
 	request, err := http.NewRequest("GET", searchURL, nil)
 
 	if err != nil {
-		return "", ErrProviderFailure
+		return nil, ErrProviderFailure
 	}
 
 	resp, err := client.Do(request)
 
 	if err != nil {
-		return "", ErrProviderFailure
+		return nil, ErrProviderFailure
 	}
 
 	err = p.handleError(resp)
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	defer resp.Body.Close()
@@ -195,7 +201,10 @@ func (p *yandexProvider) Search(name, searchType string) (string, error) {
 	var result struct {
 		Tracks struct {
 			Items []struct {
-				ID int
+				ID     int
+				Albums []*struct {
+					ID int
+				}
 			}
 		}
 		Albums struct {
@@ -213,19 +222,28 @@ func (p *yandexProvider) Search(name, searchType string) (string, error) {
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	if err != nil {
-		return "", ErrProviderFailure
+		return nil, ErrProviderFailure
 	}
+
+	trackID := ""
+	albumID := ""
+	artistID := ""
 
 	switch searchType {
 	case "track":
-		return strconv.Itoa(result.Tracks.Items[0].ID), nil
+		trackID = strconv.Itoa(result.Tracks.Items[0].ID)
+		albumID = strconv.Itoa(result.Tracks.Items[0].Albums[0].ID)
 	case "album":
-		return strconv.Itoa(result.Albums.Items[0].ID), nil
+		albumID = strconv.Itoa(result.Albums.Items[0].ID)
 	case "artist":
-		return strconv.Itoa(result.Artists.Items[0].ID), nil
+		artistID = strconv.Itoa(result.Artists.Items[0].ID)
 	}
 
-	return "", ErrWrongSearchType
+	return map[string]string{
+		"track":  trackID,
+		"album":  albumID,
+		"artist": artistID,
+	}, nil
 }
 
 func (p *yandexProvider) handleError(resp *http.Response) error {
@@ -240,4 +258,17 @@ func (p *yandexProvider) handleError(resp *http.Response) error {
 	}
 
 	return nil
+}
+
+func (p *yandexProvider) GenerateLink(IDs map[string]string, linkType string) (string, error) {
+	switch linkType {
+	case "track":
+		return fmt.Sprintf("https://music.yandex.ru/album/%s/track/%s", IDs["album"], IDs["track"]), nil
+	case "album":
+		return fmt.Sprintf("https://music.yandex.ru/album/%s", IDs["album"]), nil
+	case "artist":
+		return fmt.Sprintf("https://music.yandex.ru/artist/%s", IDs["artist"]), nil
+	}
+
+	return "", ErrWrongLinkType
 }

@@ -221,7 +221,7 @@ func (p *spotifyProvider) GetArtist(artistID string) (getArtistResult, error) {
 	return getArtistResult(result), nil
 }
 
-func (p *spotifyProvider) Search(name, searchType string) (string, error) {
+func (p *spotifyProvider) Search(name, searchType string) (map[string]string, error) {
 	query := url.QueryEscape(name)
 	searchURL := fmt.Sprintf("%s?q=%s&type=%s", p.endpoints["SEARCH"], query, searchType)
 
@@ -229,13 +229,13 @@ func (p *spotifyProvider) Search(name, searchType string) (string, error) {
 	request.Header.Set("authorization", p.apiToken)
 
 	if err != nil {
-		return "", ErrProviderFailure
+		return nil, ErrProviderFailure
 	}
 
 	resp, err := client.Do(request)
 
 	if err != nil {
-		return "", ErrProviderFailure
+		return nil, ErrProviderFailure
 	}
 
 	err = p.handleError(resp)
@@ -248,10 +248,10 @@ func (p *spotifyProvider) Search(name, searchType string) (string, error) {
 		err = p.handleError(resp)
 
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 	} else {
-		return "", err
+		return nil, err
 	}
 
 	defer resp.Body.Close()
@@ -277,19 +277,27 @@ func (p *spotifyProvider) Search(name, searchType string) (string, error) {
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	if err != nil {
-		return "", ErrProviderFailure
+		return nil, ErrProviderFailure
 	}
+
+	trackID := ""
+	albumID := ""
+	artistID := ""
 
 	switch searchType {
 	case "track":
-		return (result.Tracks.Items[0].ID), nil
+		trackID = result.Tracks.Items[0].ID
 	case "album":
-		return (result.Albums.Items[0].ID), nil
+		albumID = result.Albums.Items[0].ID
 	case "artist":
-		return (result.Artists.Items[0].ID), nil
+		artistID = result.Artists.Items[0].ID
 	}
 
-	return "", ErrWrongSearchType
+	return map[string]string{
+		"track":  trackID,
+		"album":  albumID,
+		"artist": artistID,
+	}, nil
 }
 
 func (p *spotifyProvider) handleError(resp *http.Response) error {
@@ -322,4 +330,17 @@ func (p *spotifyProvider) handleError(resp *http.Response) error {
 	}
 
 	return nil
+}
+
+func (p *spotifyProvider) GenerateLink(IDs map[string]string, linkType string) (string, error) {
+	switch linkType {
+	case "track":
+		return fmt.Sprintf("https://open.spotify.com/track/%s", IDs["track"]), nil
+	case "album":
+		return fmt.Sprintf("https://open.spotify.com/album/%s", IDs["album"]), nil
+	case "artist":
+		return fmt.Sprintf("https://open.spotify.com/artist/%s", IDs["artist"]), nil
+	}
+
+	return "", ErrWrongLinkType
 }
