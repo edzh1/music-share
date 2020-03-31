@@ -5,6 +5,7 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	mongoModels "github.com/edzh1/music-share/pkg/models/mongo"
@@ -23,24 +24,23 @@ type application struct {
 	artists        *mongoModels.ArtistModel
 	providers      providerMap
 	providerParser *urlparser.URLParser
+	infoLog        *log.Logger
+	errorLog       *log.Logger
 }
 
 func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	// client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://mongo_container:27017"))
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	err = client.Ping(ctx, readpref.Primary())
+	defer cancel()
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	defer cancel()
+	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
+	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
 
 	spotifyCredentials := flag.String("spotifyCredentials", "", "Base64 encoded client_id:clent_secret")
 	flag.Parse()
@@ -59,6 +59,8 @@ func main() {
 			"spotify": providers.Spotify,
 			"yandex":  providers.Yandex,
 		},
+		infoLog:  infoLog,
+		errorLog: errorLog,
 	}
 
 	// tlsConfig := &tls.Config{
