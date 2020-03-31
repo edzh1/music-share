@@ -39,7 +39,7 @@ type getTrackResult struct {
 	Album struct { //TODO: spotify should return album too
 		ID string
 	}
-	Artists []*struct {
+	Artists []struct {
 		ID   string
 		Name string
 	}
@@ -48,7 +48,7 @@ type getTrackResult struct {
 type getAlbumResult struct {
 	ID      string
 	Name    string
-	Artists []*struct {
+	Artists []struct {
 		ID   string
 		Name string
 	}

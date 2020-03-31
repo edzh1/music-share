@@ -3,6 +3,7 @@ package providers
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"path"
@@ -71,17 +72,32 @@ func (p *yandexProvider) GetTrack(trackID string) (getTrackResult, error) {
 		Track struct {
 			ID     string
 			Title  string
-			Albums []*struct {
+			Albums []struct {
 				ID int
 			}
-			Artists []*struct {
-				ID   string
+			Artists []struct {
+				ID   int
 				Name string
 			}
 		}
 	}
 
+	var resultArtists []struct {
+		ID   string
+		Name string
+	}
+
 	err = json.NewDecoder(resp.Body).Decode(&result)
+
+	for _, artist := range result.Track.Artists {
+		resultArtists = append(resultArtists, struct {
+			ID   string
+			Name string
+		}{
+			ID:   strconv.Itoa(artist.ID),
+			Name: artist.Name,
+		})
+	}
 
 	if err != nil {
 		return getTrackResult{}, ErrProviderFailure
@@ -90,9 +106,9 @@ func (p *yandexProvider) GetTrack(trackID string) (getTrackResult, error) {
 	return getTrackResult{
 		ID:      result.Track.ID,
 		Name:    result.Track.Title,
-		Artists: result.Track.Artists,
+		Artists: resultArtists,
 		Album: struct{ ID string }{
-			ID: string(result.Track.Albums[0].ID),
+			ID: strconv.Itoa(result.Track.Albums[0].ID),
 		},
 	}, nil
 }
@@ -202,7 +218,7 @@ func (p *yandexProvider) Search(name, searchType string) (map[string]string, err
 		Tracks struct {
 			Items []struct {
 				ID     int
-				Albums []*struct {
+				Albums []struct {
 					ID int
 				}
 			}
@@ -219,15 +235,22 @@ func (p *yandexProvider) Search(name, searchType string) (map[string]string, err
 		}
 	}
 
+	// b, _ := ioutil.ReadAll(resp.Body)
+	// log.Println(string(b)) //TODO: can be readed once?
+
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	if err != nil {
+		log.Fatal(err)
 		return nil, ErrProviderFailure
 	}
 
 	trackID := ""
 	albumID := ""
 	artistID := ""
+
+	log.Println("result.Artists.Items[0].ID")
+	log.Println(result.Artists.Items[0].ID)
 
 	switch searchType {
 	case "track":
@@ -247,6 +270,9 @@ func (p *yandexProvider) Search(name, searchType string) (map[string]string, err
 }
 
 func (p *yandexProvider) handleError(resp *http.Response) error {
+	log.Print("resp.StatusCode")
+	log.Println(resp.StatusCode)
+
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 400 {
 			return ErrBadRequest

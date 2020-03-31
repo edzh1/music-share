@@ -116,7 +116,7 @@ func (p *spotifyProvider) GetTrack(trackID string) (getTrackResult, error) {
 		if err != nil {
 			return getTrackResult{}, err
 		}
-	} else {
+	} else if err != nil {
 		return getTrackResult{}, err
 	}
 
@@ -160,7 +160,7 @@ func (p *spotifyProvider) GetAlbum(albumID string) (getAlbumResult, error) {
 		if err != nil {
 			return getAlbumResult{}, err
 		}
-	} else {
+	} else if err != nil {
 		return getAlbumResult{}, err
 	}
 
@@ -204,7 +204,7 @@ func (p *spotifyProvider) GetArtist(artistID string) (getArtistResult, error) {
 		if err != nil {
 			return getArtistResult{}, err
 		}
-	} else {
+	} else if err != nil {
 		return getArtistResult{}, err
 	}
 
@@ -250,23 +250,13 @@ func (p *spotifyProvider) Search(name, searchType string) (map[string]string, er
 		if err != nil {
 			return nil, err
 		}
-	} else {
+	} else if err != nil {
 		return nil, err
 	}
 
 	defer resp.Body.Close()
 
 	var result struct {
-		Tracks struct {
-			Items []struct {
-				ID string
-			}
-		}
-		Albums struct {
-			Items []struct {
-				ID string
-			}
-		}
 		Artists struct {
 			Items []struct {
 				ID string
@@ -275,6 +265,9 @@ func (p *spotifyProvider) Search(name, searchType string) (map[string]string, er
 	}
 
 	err = json.NewDecoder(resp.Body).Decode(&result)
+
+	// b, _ := ioutil.ReadAll(resp.Body)
+	// log.Println(string(b))
 
 	if err != nil {
 		return nil, ErrProviderFailure
@@ -285,10 +278,7 @@ func (p *spotifyProvider) Search(name, searchType string) (map[string]string, er
 	artistID := ""
 
 	switch searchType {
-	case "track":
-		trackID = result.Tracks.Items[0].ID
-	case "album":
-		albumID = result.Albums.Items[0].ID
+
 	case "artist":
 		artistID = result.Artists.Items[0].ID
 	}

@@ -11,6 +11,9 @@ func handleLinkError(w http.ResponseWriter, err error) {
 	if err == providers.ErrBadRequest {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
+	} else if err == providers.ErrNotFound {
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+		return
 	} else if err == providers.ErrProviderFailure {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
