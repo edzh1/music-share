@@ -29,6 +29,9 @@ type application struct {
 }
 
 func main() {
+	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
+	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	// client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://mongo_container:27017"))
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
@@ -36,11 +39,8 @@ func main() {
 	defer cancel()
 
 	if err != nil {
-		log.Fatal(err)
+		errorLog.Fatal(err)
 	}
-
-	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
-	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
 
 	spotifyCredentials := flag.String("spotifyCredentials", "", "Base64 encoded client_id:clent_secret")
 	flag.Parse()
@@ -81,6 +81,6 @@ func main() {
 	err = srv.ListenAndServe()
 
 	if err != nil {
-		log.Fatal(err)
+		errorLog.Fatal(err)
 	}
 }

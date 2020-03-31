@@ -3,7 +3,6 @@ package providers
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"path"
@@ -238,7 +237,6 @@ func (p *yandexProvider) Search(name, searchType string) (map[string]string, err
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	if err != nil {
-		log.Fatal(err)
 		return nil, ErrProviderFailure
 	}
 
