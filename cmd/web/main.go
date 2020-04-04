@@ -35,7 +35,7 @@ func main() {
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://db:27017"))
 
 	if err != nil {
-		log.Fatal(err)
+		errorLog.Fatal(err)
 	}
 
 	err = client.Ping(ctx, readpref.Primary())
