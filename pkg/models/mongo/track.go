@@ -2,7 +2,6 @@ package mongo
 
 import (
 	"context"
-	"log"
 
 	"github.com/edzh1/music-share/pkg/models"
 	"go.mongodb.org/mongo-driver/bson"
@@ -19,13 +18,11 @@ var tracksCollection = "tracks"
 //Insert single track into db
 func (m *TrackModel) Insert(document bson.M) (int, error) {
 	collection := m.Client.Database("music-share").Collection(tracksCollection)
-	res, err := collection.InsertOne(context.Background(), document)
+	_, err := collection.InsertOne(context.Background(), document)
 
 	if err != nil {
 		return 0, err
 	}
-
-	log.Println(res)
 
 	return 1, nil
 }
@@ -47,13 +44,11 @@ func (m *TrackModel) Get(filter bson.M) (models.Track, error) {
 //Delete single track from db
 func (m *TrackModel) Delete(spotifyID string) (int, error) {
 	collection := m.Client.Database("music-share").Collection(tracksCollection)
-	result, err := collection.DeleteOne(context.Background(), bson.M{"spotifyID": spotifyID})
+	_, err := collection.DeleteOne(context.Background(), bson.M{"spotifyID": spotifyID})
 
 	if err != nil {
-		log.Fatal(err)
+		return 0, err
 	}
-
-	log.Println(result)
 
 	return 1, nil
 }

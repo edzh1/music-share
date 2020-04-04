@@ -7,17 +7,19 @@ import (
 	"github.com/edzh1/music-share/pkg/providers"
 )
 
-func handleLinkError(w http.ResponseWriter, err error) {
+func (app *application) handleHTTPError(w http.ResponseWriter, err error) {
 	if err == providers.ErrBadRequest {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	} else if err == providers.ErrNotFound {
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
-	} else if err == providers.ErrProviderFailure {
+	} else if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
+
+	app.errorLog.Fatal(err)
 }
 
 func (app *application) handleLink(w http.ResponseWriter, r *http.Request) {
@@ -63,7 +65,7 @@ func (app *application) handleLink(w http.ResponseWriter, r *http.Request) {
 			}
 
 			if err != nil {
-				handleLinkError(w, err)
+				app.handleHTTPError(w, err)
 				return
 			}
 		case "album":
@@ -77,7 +79,7 @@ func (app *application) handleLink(w http.ResponseWriter, r *http.Request) {
 			}
 
 			if err != nil {
-				handleLinkError(w, err)
+				app.handleHTTPError(w, err)
 				return
 			}
 		case "artist":
@@ -91,7 +93,7 @@ func (app *application) handleLink(w http.ResponseWriter, r *http.Request) {
 			}
 
 			if err != nil {
-				handleLinkError(w, err)
+				app.handleHTTPError(w, err)
 				return
 			}
 		}
@@ -99,7 +101,7 @@ func (app *application) handleLink(w http.ResponseWriter, r *http.Request) {
 		result[p], err = app.providers[p].GenerateLink(providerIDs, linkType)
 
 		if err != nil {
-			handleLinkError(w, err)
+			app.handleHTTPError(w, err)
 			return
 		}
 	}
@@ -108,6 +110,7 @@ func (app *application) handleLink(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		app.errorLog.Fatal(err)
 	}
 
 	w.Write(b)

@@ -52,7 +52,6 @@ func (m *ArtistModel) Delete(spotifyID string) (int, error) {
 	result, err := collection.DeleteOne(context.Background(), bson.M{"spotifyID": spotifyID})
 
 	if err != nil {
-		log.Fatal(err)
 		return 0, err
 	}
 

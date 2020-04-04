@@ -23,9 +23,14 @@ type application struct {
 	artists        *mongoModels.ArtistModel
 	providers      providerMap
 	providerParser *urlparser.URLParser
+	infoLog        *log.Logger
+	errorLog       *log.Logger
 }
 
 func main() {
+	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
+	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://db:27017"))
 
@@ -34,9 +39,10 @@ func main() {
 	}
 
 	err = client.Ping(ctx, readpref.Primary())
+	defer cancel()
 
 	if err != nil {
-		log.Fatal(err)
+		errorLog.Fatal(err)
 	}
 
 	defer cancel()
@@ -57,6 +63,8 @@ func main() {
 			"spotify": providers.Spotify,
 			"yandex":  providers.Yandex,
 		},
+		infoLog:  infoLog,
+		errorLog: errorLog,
 	}
 
 	// tlsConfig := &tls.Config{
@@ -77,6 +85,6 @@ func main() {
 	err = srv.ListenAndServe()
 
 	if err != nil {
-		log.Fatal(err)
+		errorLog.Fatal(err)
 	}
 }

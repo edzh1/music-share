@@ -3,7 +3,6 @@ package providers
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"path"
@@ -235,22 +234,15 @@ func (p *yandexProvider) Search(name, searchType string) (map[string]string, err
 		}
 	}
 
-	// b, _ := ioutil.ReadAll(resp.Body)
-	// log.Println(string(b)) //TODO: can be readed once?
-
 	err = json.NewDecoder(resp.Body).Decode(&result)
 
 	if err != nil {
-		log.Fatal(err)
 		return nil, ErrProviderFailure
 	}
 
 	trackID := ""
 	albumID := ""
 	artistID := ""
-
-	log.Println("result.Artists.Items[0].ID")
-	log.Println(result.Artists.Items[0].ID)
 
 	switch searchType {
 	case "track":
@@ -270,9 +262,6 @@ func (p *yandexProvider) Search(name, searchType string) (map[string]string, err
 }
 
 func (p *yandexProvider) handleError(resp *http.Response) error {
-	log.Print("resp.StatusCode")
-	log.Println(resp.StatusCode)
-
 	if resp.StatusCode != 200 {
 		if resp.StatusCode == 400 {
 			return ErrBadRequest
