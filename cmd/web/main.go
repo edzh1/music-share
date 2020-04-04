@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
-	"flag"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	mongoModels "github.com/edzh1/music-share/pkg/models/mongo"
@@ -27,8 +27,7 @@ type application struct {
 
 func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	// client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://mongo_container:27017"))
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://db:27017"))
 
 	if err != nil {
 		log.Fatal(err)
@@ -42,9 +41,8 @@ func main() {
 
 	defer cancel()
 
-	spotifyCredentials := flag.String("spotifyCredentials", "", "Base64 encoded client_id:clent_secret")
-	flag.Parse()
-	providers.Spotify.ClientToken = *spotifyCredentials
+	spotifyCredentials := os.Getenv("SPOTIFY_CREDENTIALS")
+	providers.Spotify.ClientToken = spotifyCredentials
 
 	providerParser := &urlparser.URLParser{
 		Providers: []string{"yandex", "spotify"},

@@ -1,0 +1,21 @@
+version: '3.7'
+services: 
+  backend:
+    build: .
+    ports: 
+      - 4000:4000
+    depends_on: 
+      - db
+    env_file:
+      - .env
+    restart: always
+  db:
+    image: mongo
+    restart: always
+    volumes:
+      - type: volume
+        source: music-share
+        target: /data/db
+
+volumes:
+  music-share:
