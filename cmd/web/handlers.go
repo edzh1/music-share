@@ -7,6 +7,10 @@ import (
 	"github.com/edzh1/music-share/pkg/providers"
 )
 
+func enableCors(w *http.ResponseWriter) {
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+}
+
 func (app *application) handleHTTPError(w http.ResponseWriter, err error) {
 	if err == providers.ErrBadRequest {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
@@ -23,6 +27,7 @@ func (app *application) handleHTTPError(w http.ResponseWriter, err error) {
 }
 
 func (app *application) handleLink(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
 	URL := r.URL.Query().Get("url")
 	providerName, err := app.providerParser.GetProvider(URL)
 
