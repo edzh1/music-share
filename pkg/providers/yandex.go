@@ -71,17 +71,32 @@ func (p *yandexProvider) GetTrack(trackID string) (getTrackResult, error) {
 		Track struct {
 			ID     string
 			Title  string
-			Albums []*struct {
+			Albums []struct {
 				ID int
 			}
-			Artists []*struct {
-				ID   string
+			Artists []struct {
+				ID   int
 				Name string
 			}
 		}
 	}
 
+	var resultArtists []struct {
+		ID   string
+		Name string
+	}
+
 	err = json.NewDecoder(resp.Body).Decode(&result)
+
+	for _, artist := range result.Track.Artists {
+		resultArtists = append(resultArtists, struct {
+			ID   string
+			Name string
+		}{
+			ID:   strconv.Itoa(artist.ID),
+			Name: artist.Name,
+		})
+	}
 
 	if err != nil {
 		return getTrackResult{}, ErrProviderFailure
@@ -90,9 +105,9 @@ func (p *yandexProvider) GetTrack(trackID string) (getTrackResult, error) {
 	return getTrackResult{
 		ID:      result.Track.ID,
 		Name:    result.Track.Title,
-		Artists: result.Track.Artists,
+		Artists: resultArtists,
 		Album: struct{ ID string }{
-			ID: string(result.Track.Albums[0].ID),
+			ID: strconv.Itoa(result.Track.Albums[0].ID),
 		},
 	}, nil
 }
@@ -202,7 +217,7 @@ func (p *yandexProvider) Search(name, searchType string) (map[string]string, err
 		Tracks struct {
 			Items []struct {
 				ID     int
-				Albums []*struct {
+				Albums []struct {
 					ID int
 				}
 			}

@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
-	"flag"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	mongoModels "github.com/edzh1/music-share/pkg/models/mongo"
@@ -12,6 +12,7 @@ import (
 	"github.com/edzh1/music-share/pkg/urlparser"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 type providerMap map[string]providers.ProviderInterface
@@ -22,21 +23,32 @@ type application struct {
 	artists        *mongoModels.ArtistModel
 	providers      providerMap
 	providerParser *urlparser.URLParser
+	infoLog        *log.Logger
+	errorLog       *log.Logger
 }
 
 func main() {
+	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
+	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://db:27017"))
 
 	if err != nil {
-		log.Fatal(err)
+		errorLog.Fatal(err)
+	}
+
+	err = client.Ping(ctx, readpref.Primary())
+	defer cancel()
+
+	if err != nil {
+		errorLog.Fatal(err)
 	}
 
 	defer cancel()
 
-	spotifyCredentials := flag.String("spotifyCredentials", "", "Base64 encoded client_id:clent_secret")
-	flag.Parse()
-	providers.Spotify.ClientToken = *spotifyCredentials
+	spotifyCredentials := os.Getenv("SPOTIFY_CREDENTIALS")
+	providers.Spotify.ClientToken = spotifyCredentials
 
 	providerParser := &urlparser.URLParser{
 		Providers: []string{"yandex", "spotify"},
@@ -51,6 +63,8 @@ func main() {
 			"spotify": providers.Spotify,
 			"yandex":  providers.Yandex,
 		},
+		infoLog:  infoLog,
+		errorLog: errorLog,
 	}
 
 	// tlsConfig := &tls.Config{
@@ -71,6 +85,6 @@ func main() {
 	err = srv.ListenAndServe()
 
 	if err != nil {
-		log.Fatal(err)
+		errorLog.Fatal(err)
 	}
 }

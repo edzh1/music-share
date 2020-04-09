@@ -57,7 +57,9 @@ func (app *application) getTrack(ID string, provider providers.ProviderInterface
 					providerIDs = nil
 				}
 
-				newTrack[fmt.Sprintf("%sID", providerKey)] = providerIDs["track"]
+				if providerIDs["track"] != "" {
+					newTrack[fmt.Sprintf("%sID", providerKey)] = providerIDs["track"]
+				}
 
 				if providerKey == "yandex" {
 					newTrack["YandexAlbumID"] = providerIDs["album"]
@@ -119,7 +121,9 @@ func (app *application) getAlbum(ID string, provider providers.ProviderInterface
 					providerIDs = nil
 				}
 
-				newAlbum[fmt.Sprintf("%sID", providerKey)] = providerIDs["album"]
+				if providerIDs["album"] != "" {
+					newAlbum[fmt.Sprintf("%sID", providerKey)] = providerIDs["album"]
+				}
 			}
 		}
 
@@ -169,7 +173,9 @@ func (app *application) getArtist(ID string, provider providers.ProviderInterfac
 					providerIDs = nil
 				}
 
-				newArtist[fmt.Sprintf("%sID", providerKey)] = providerIDs["artist"]
+				if providerIDs[""] != "" {
+					newArtist[fmt.Sprintf("%sID", providerKey)] = providerIDs["artist"]
+				}
 			}
 		}
 
