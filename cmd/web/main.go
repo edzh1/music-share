@@ -67,21 +67,14 @@ func main() {
 		errorLog: errorLog,
 	}
 
-	// tlsConfig := &tls.Config{
-	// 	PreferServerCipherSuites: true,
-	// 	CurvePreferences:         []tls.CurveID{tls.X25519, tls.CurveP256},
-	// }
-
 	srv := &http.Server{
-		Addr:    ":4000",
-		Handler: app.routes(),
-		// TLSConfig:    tlsConfig,
+		Addr:         ":4000",
+		Handler:      app.routes(),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
 
-	// err = srv.ListenAndServe("./tls/cert.pem", "./tls/key.pem")
 	err = srv.ListenAndServe()
 
 	if err != nil {
